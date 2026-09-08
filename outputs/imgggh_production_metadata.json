@@ -1,0 +1,104 @@
+{
+  "mode": "relative",
+  "units": "relative_units",
+  "confidence": "unavailable",
+  "resolution": [
+    626,
+    626
+  ],
+  "is_georeferenced": false,
+  "crs": null,
+  "bounds": null,
+  "scale_factor": 1.0,
+  "offset": 0.0,
+  "calibration_metrics": {},
+  "products": {
+    "relative_ndsm": {
+      "product_type": "relative_ndsm",
+      "filename": "imgggh_6bab5c29_relative_ndsm.tif",
+      "file_path": "C:\\Users\\Aman\\Desktop\\New folder\\outputs\\imgggh_6bab5c29_relative_ndsm.tif",
+      "download_url": "/download/imgggh_6bab5c29_relative_ndsm.tif",
+      "is_geotiff": false,
+      "shape": [
+        626,
+        626
+      ],
+      "crs": null,
+      "nodata": -9999.0,
+      "statistics": {
+        "min": 13.488038063049316,
+        "max": 20.132659912109375,
+        "mean": 16.628385543823242,
+        "std": 0.1968003809452057,
+        "valid_ratio": 1.0
+      }
+    },
+    "segmentation": {
+      "product_type": "segmentation",
+      "filename": "imgggh_6bab5c29_segmentation.tif",
+      "file_path": "C:\\Users\\Aman\\Desktop\\New folder\\outputs\\imgggh_6bab5c29_segmentation.tif",
+      "download_url": "/download/imgggh_6bab5c29_segmentation.tif",
+      "is_geotiff": false,
+      "shape": [
+        626,
+        626
+      ],
+      "crs": null,
+      "nodata": null,
+      "statistics": {
+        "min": 0.0,
+        "max": 43.0,
+        "mean": 1.7483821412895917,
+        "std": 3.9307515458743496,
+        "valid_ratio": 1.0
+      }
+    }
+  },
+  "segmentation": {
+    "class_distribution": [
+      {
+        "class_id": 1,
+        "class_name": "building",
+        "pixel_count": 346188,
+        "percentage": 88.34
+      },
+      {
+        "class_id": 4,
+        "class_name": "tree",
+        "pixel_count": 38166,
+        "percentage": 9.74
+      },
+      {
+        "class_id": 17,
+        "class_name": "plant",
+        "pixel_count": 3783,
+        "percentage": 0.97
+      },
+      {
+        "class_id": 43,
+        "class_name": "signboard",
+        "pixel_count": 2800,
+        "percentage": 0.71
+      },
+      {
+        "class_id": 0,
+        "class_name": "wall",
+        "pixel_count": 836,
+        "percentage": 0.21
+      },
+      {
+        "class_id": 14,
+        "class_name": "door",
+        "pixel_count": 85,
+        "percentage": 0.02
+      },
+      {
+        "class_id": 22,
+        "class_name": "painting",
+        "pixel_count": 18,
+        "percentage": 0.0
+      }
+    ],
+    "detected_class_count": 7
+  }
+}
