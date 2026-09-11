@@ -28,34 +28,33 @@ class BaseHeightPredictor(nn.Module):
 
     def get_losses(self, pred, gt):
         return self._get_losses(self, pred, gt)
-
     @staticmethod
     def _get_metric_params(cls, pred, gt, num_bin=101, interval=5):
-        stats = torch.load(cls.stats_file).long().to(pred["ndsm"].device)
-        cls.num_cls = stats.max() + 1
         metric_params = {
             "sum": pred["ndsm"].numel(),
             "ae": torch.abs(gt["ndsm"] - pred["ndsm"]).sum(),
             "se": ((gt["ndsm"] - pred["ndsm"])**2).sum()
         }
-        gt_int = torch.clamp(gt["ndsm"], min=0, max=398).long()
-        gt_cls = stats[gt_int].squeeze(1)
-        gt_cls = F.one_hot(gt_cls, num_classes=cls.num_cls).permute(0, 3, 1, 2).contiguous()
-        sum_cls = gt_cls.sum(dim=-1).sum(dim=-1).sum(dim=0)
-        ae_cls = (torch.abs(gt["ndsm"] - pred["ndsm"]) * gt_cls).sum(dim=-1).sum(dim=-1).sum(dim=0)
-        se_cls = ((gt["ndsm"] - pred["ndsm"])**2 *gt_cls).sum(dim=-1).sum(dim=-1).sum(dim=0)
-        metric_params.update({"sum"+str(i): sum_cls[i] for i in range(cls.num_cls)})
-        metric_params.update({"ae"+str(i): ae_cls[i] for i in range(cls.num_cls)})
-        metric_params.update({"se"+str(i): se_cls[i] for i in range(cls.num_cls)})
 
-        sum8 = (gt_cls[:, -1:] * (gt["ndsm"]>0)).sum()
-        ae8 = (torch.abs(gt["ndsm"] - pred["ndsm"]) * gt_cls[:, -1:] * (gt["ndsm"]>0)).sum()
-        se8 = ((gt["ndsm"] - pred["ndsm"])**2 *gt_cls[:, -1:] * (gt["ndsm"]>0)).sum()
-        metric_params.update({
-            "sum8>0": sum8,
-            "ae8>0": ae8,
-            "se8>0": se8
-        })
+        if os.path.exists(cls.stats_file):
+            stats = torch.load(cls.stats_file, weights_only=False).long().to(pred["ndsm"].device)
+            cls.num_cls = stats.max() + 1
+            gt_int = torch.clamp(gt["ndsm"], min=0, max=398).long()
+            gt_cls = stats[gt_int].squeeze(1)
+            gt_cls = F.one_hot(gt_cls, num_classes=cls.num_cls).permute(0, 3, 1, 2).contiguous()
+            sum_cls = gt_cls.sum(dim=-1).sum(dim=-1).sum(dim=0)
+            ae_cls = (torch.abs(gt["ndsm"] - pred["ndsm"]) * gt_cls).sum(dim=-1).sum(dim=-1).sum(dim=0)
+            se_cls = ((gt["ndsm"] - pred["ndsm"])**2 * gt_cls).sum(dim=-1).sum(dim=-1).sum(dim=0)
+            metric_params.update({"sum"+str(i): sum_cls[i] for i in range(cls.num_cls)})
+            metric_params.update({"ae"+str(i): ae_cls[i] for i in range(cls.num_cls)})
+            metric_params.update({"se"+str(i): se_cls[i] for i in range(cls.num_cls)})
+
+            sum8 = (gt_cls[:, -1:] * (gt["ndsm"]>0)).sum()
+            ae8 = (torch.abs(gt["ndsm"] - pred["ndsm"]) * gt_cls[:, -1:] * (gt["ndsm"]>0)).sum()
+            se8 = ((gt["ndsm"] - pred["ndsm"])**2 * gt_cls[:, -1:] * (gt["ndsm"]>0)).sum()
+            metric_params.update({"sum8>0": sum8, "ae8>0": ae8, "se8>0": se8})
+        # else: stats file missing — skip per-class breakdown only,
+        # core sum/ae/se above are already computed and unaffected
 
         if cls.test:
             assert "mask" in gt, "During test, Ground Truth should contain masks."
@@ -95,12 +94,13 @@ class BaseHeightPredictor(nn.Module):
             "mae": eval_dict["ae"] / eval_dict["sum"],
             "rmse": torch.sqrt(eval_dict["se"] / eval_dict["sum"]),
         }
-        eval_res.update({"mae"+str(i): eval_dict["ae"+str(i)] / eval_dict["sum"+str(i)] for i in range(cls.num_cls)})
-        eval_res.update({"rmse"+str(i): torch.sqrt(eval_dict["se"+str(i)] / eval_dict["sum"+str(i)]) for i in range(cls.num_cls)})
-        eval_res.update({
-            "mae8>0": eval_dict["ae8>0"] / eval_dict["sum8>0"],
-            "rmse8>0": torch.sqrt(eval_dict["se8>0"] / eval_dict["sum8>0"])
-        })
+        if hasattr(cls, "num_cls"):
+            eval_res.update({"mae"+str(i): eval_dict["ae"+str(i)] / eval_dict["sum"+str(i)] for i in range(cls.num_cls)})
+            eval_res.update({"rmse"+str(i): torch.sqrt(eval_dict["se"+str(i)] / eval_dict["sum"+str(i)]) for i in range(cls.num_cls)})
+            eval_res.update({
+                "mae8>0": eval_dict["ae8>0"] / eval_dict["sum8>0"],
+                "rmse8>0": torch.sqrt(eval_dict["se8>0"] / eval_dict["sum8>0"])
+            })
         if cls.test:
             eval_res.update({
                 "mae_mask": eval_dict["ae_mask"] / eval_dict["sum_mask"],

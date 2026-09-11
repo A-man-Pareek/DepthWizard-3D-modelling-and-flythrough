@@ -21,9 +21,12 @@ OUTPUT_DIR = os.path.join(PROJECT_ROOT, "outputs")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 images_to_run = [
+    os.path.join(DATA_DIR, "test_georeferenced.tif"),
+    os.path.join(DATA_DIR, "test_plain.png"),
     os.path.join(DATA_DIR, "Sentinel-2_L1C_from_2018-08-23_Mendocino_27.tif"),
     os.path.join(DATA_DIR, "satellite_maps_top_section_315aeb262d.webp"),
 ]
+
 
 
 def main():
@@ -67,12 +70,11 @@ def main():
             top_classes = [(c['class_name'], c['percentage']) for c in result.segmentation['class_distribution'][:3]]
             print(f"  Top SegFormer Classes: {top_classes}")
 
-        # Save standalone JSON metadata
-        json_filename = f"{base_name}_production_metadata.json"
-        json_path = os.path.join(OUTPUT_DIR, json_filename)
-        with open(json_path, "w") as f:
-            json.dump(meta, f, indent=2)
-        print(f"  Metadata JSON saved: {json_path}")
+        # Confirm all required artifacts
+        print(f"  DSM Raster:       {os.path.join(OUTPUT_DIR, f'{base_name}_dsm.tif')}")
+        print(f"  Pred Height:      {os.path.join(OUTPUT_DIR, f'{base_name}_pred_height.tif')}")
+        print(f"  Metadata JSON:    {result.metadata_json_path}")
+        print(f"  Summary JSON:     {result.summary_json_path}")
 
         results.append((filename, result))
 

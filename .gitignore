@@ -34,19 +34,28 @@ env.bak/
 venv.bak/
 
 # PyTorch / Deep Learning Checkpoints (>100MB exceeds standard GitHub limits)
-checkpoints/*.pth.tar
-checkpoints/*.pth
+**/checkpoints/
+checkpoints/
+*.pth.tar
+*.pth
 *.ckpt
 *.h5
 
 # Local DEM Cache and Datasets
+data/data_dir/
 dem_cache/
 *.tif.aux.xml
+
+# Experiment tracking
+**/wandb/
+wandb/
 
 # Output rasters and large test artifacts
 outputs/*.tif
 outputs/*.png
-outputs/*_pixel_heights.json
+outputs/*.json
+!outputs/.gitkeep
+
 
 # IDE / Editor
 .vscode/

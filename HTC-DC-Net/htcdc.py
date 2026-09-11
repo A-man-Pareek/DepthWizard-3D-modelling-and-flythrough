@@ -456,7 +456,7 @@ class UBins(BaseHeightPredictor):
         for i in range(len(pred["ndsm_intermediate"])):
             losses.update({
                 "mae_"+str(i): (F.l1_loss(pred["ndsm_intermediate"][i], gt["ndsm"], reduction='none') * mask).sum() / mask.sum(), 
-                "bin_chamfer_"+str(i): self.binloss(pred["bin"][i], gt["ndsm"])
+                "bin_chamfer_"+str(i): (self.binloss(pred["bin"][i], gt["ndsm"]) if self.binloss is not None else torch.tensor(0.0, device=pred["bin"][i].device))
             })
             if self.head_tail_cut:
                 losses.update({

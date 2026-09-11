@@ -157,7 +157,7 @@ class GBHDataset(torch.utils.data.Dataset):
         self.is_validation = is_validation
         image_stats_file = os.path.join(data_dir, 'image_stats.pickle')
         if os.path.exists(image_stats_file):
-            self.mean, self.std = torch.load(image_stats_file)
+            self.mean, self.std = torch.load(image_stats_file, weights_only=False)
         else:
             self.mean = [0.485, 0.456, 0.406]
             self.std = [0.229, 0.224, 0.225]

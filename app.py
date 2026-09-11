@@ -161,7 +161,15 @@ def download_raster(filename: str):
     if not os.path.isfile(target_path):
         raise HTTPException(status_code=404, detail=f"File '{safe_filename}' not found.")
 
-    media_type = "image/tiff" if safe_filename.endswith((".tif", ".tiff")) else "application/octet-stream"
+    if safe_filename.endswith((".tif", ".tiff")):
+        media_type = "image/tiff"
+    elif safe_filename.endswith(".json"):
+        media_type = "application/json"
+    elif safe_filename.endswith((".png", ".jpg", ".jpeg")):
+        media_type = "image/png"
+    else:
+        media_type = "application/octet-stream"
+
     return FileResponse(path=target_path, filename=safe_filename, media_type=media_type)
 
 

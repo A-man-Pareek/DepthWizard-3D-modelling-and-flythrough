@@ -13,6 +13,7 @@ Production-grade geospatial raster export:
      - segmentation
 """
 
+import json
 import os
 import uuid
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -84,6 +85,52 @@ def compute_raster_statistics(arr: np.ndarray, nodata: float = DEFAULT_NODATA) -
     }
 
 
+def normalize_metadata_fields(
+    primary_arr: np.ndarray,
+    mode: Optional[str] = None,
+    units: Optional[str] = None,
+    confidence: Optional[str] = None,
+    is_georeferenced: bool = False,
+) -> Dict[str, Any]:
+    """Normalize metadata into the exact required 5-key contract."""
+    h, w = primary_arr.shape[:2]
+
+    # Mode: "absolute-geo" | "absolute-semantic" | "relative"
+    norm_mode = mode or ("absolute-geo" if is_georeferenced else "relative")
+    if norm_mode not in ("absolute-geo", "absolute-semantic", "relative"):
+        if "geo" in norm_mode:
+            norm_mode = "absolute-geo"
+        elif "sem" in norm_mode or "ref" in norm_mode:
+            norm_mode = "absolute-semantic"
+        else:
+            norm_mode = "relative"
+
+    # Units: "meters" | "relative_units"
+    if units in ("meters", "relative_units"):
+        norm_units = units
+    else:
+        norm_units = "meters" if norm_mode in ("absolute-geo", "absolute-semantic") else "relative_units"
+
+    # Confidence: "high" | "medium" | "n/a"
+    conf_str = str(confidence).lower() if confidence else ""
+    if conf_str == "high":
+        norm_conf = "high"
+    elif conf_str == "medium":
+        norm_conf = "medium"
+    else:
+        norm_conf = "n/a"
+
+    clean_grid = np.nan_to_num(primary_arr, nan=0.0, posinf=0.0, neginf=0.0).astype(float).tolist()
+
+    return {
+        "mode": norm_mode,
+        "units": norm_units,
+        "confidence": norm_conf,
+        "resolution": [int(w), int(h)],
+        "height_grid": clean_grid,
+    }
+
+
 def export_single_raster(
     data: np.ndarray,
     output_path: str,
@@ -130,20 +177,25 @@ def export_pipeline_products(
     crs: Optional[CRS] = None,
     transform: Optional[Affine] = None,
     nodata: float = DEFAULT_NODATA,
+    mode: Optional[str] = None,
+    units: Optional[str] = None,
+    confidence: Optional[str] = None,
+    generate_metadata_json: bool = True,
 ) -> Dict[str, Any]:
     """Export all available pipeline products and compile response metadata."""
     os.makedirs(output_dir, exist_ok=True)
-    uid = uuid.uuid4().hex[:8]
     prefix = (base_name or "output").replace(" ", "_")
 
     exported_products: Dict[str, Any] = {}
     crs_str = crs.to_string() if (crs and hasattr(crs, "to_string")) else (str(crs) if crs else None)
+    is_georeferenced = (crs is not None) and (transform is not None)
 
     product_configs = {
         "relative_ndsm": ("relative_ndsm.tif", "HTC-DC Net Relative Above-Ground Height", rasterio.float32),
         "metric_ndsm": ("metric_ndsm.tif", "Calibrated Above-Ground Height (meters)", rasterio.float32),
         "dem": ("dem.tif", "Bare-Earth Digital Elevation Model (meters)", rasterio.float32),
         "dsm": ("dsm.tif", "Digital Surface Model DEM + nDSM (meters)", rasterio.float32),
+        "pred_height": ("pred_height.tif", "Predicted Height Single-Band Float32", rasterio.float32),
         "segmentation": ("segmentation.tif", "Semantic Segmentation Class Map", rasterio.uint8),
     }
 
@@ -152,7 +204,7 @@ def export_pipeline_products(
         if arr is None:
             continue
 
-        filename = f"{prefix}_{uid}_{suffix}"
+        filename = f"{prefix}_{suffix}"
         file_path = os.path.abspath(os.path.join(output_dir, filename))
 
         is_geo = export_single_raster(
@@ -178,6 +230,77 @@ def export_pipeline_products(
             stats=stats,
         )
         exported_products[prod_key] = info.to_dict()
+
+    # Identify primary height product array
+    primary_arr: Optional[np.ndarray] = None
+    for k in ("dsm", "pred_height", "metric_ndsm", "relative_ndsm"):
+        if products.get(k) is not None:
+            primary_arr = products[k]
+            break
+
+    # Always ensure primary Height/DSM rasters (<base_name>_dsm.tif and <base_name>_pred_height.tif) are written to disk
+    if primary_arr is not None:
+        dsm_filename = f"{prefix}_dsm.tif"
+        dsm_path = os.path.abspath(os.path.join(output_dir, dsm_filename))
+        if not os.path.isfile(dsm_path):
+            export_single_raster(
+                data=primary_arr,
+                output_path=dsm_path,
+                crs=crs if is_georeferenced else None,
+                transform=transform if is_georeferenced else None,
+                nodata=nodata,
+                description="Digital Surface Model / Primary Height Product",
+                dtype=rasterio.float32,
+            )
+
+        pred_filename = f"{prefix}_pred_height.tif"
+        pred_path = os.path.abspath(os.path.join(output_dir, pred_filename))
+        if not os.path.isfile(pred_path):
+            export_single_raster(
+                data=primary_arr,
+                output_path=pred_path,
+                crs=crs if is_georeferenced else None,
+                transform=transform if is_georeferenced else None,
+                nodata=nodata,
+                description="Predicted Height (Single-Band Float32)",
+                dtype=rasterio.float32,
+            )
+
+        # Export exact 5-key standalone metadata JSON and summary statistics JSON
+        if generate_metadata_json:
+            meta_dict = normalize_metadata_fields(
+                primary_arr=primary_arr,
+                mode=mode,
+                units=units,
+                confidence=confidence,
+                is_georeferenced=is_georeferenced,
+            )
+            meta_filename = f"{prefix}_metadata.json"
+            meta_path = os.path.abspath(os.path.join(output_dir, meta_filename))
+            with open(meta_path, "w") as f:
+                json.dump(meta_dict, f, indent=2)
+
+            summary_filename = f"{prefix}_summary.json"
+            summary_path = os.path.abspath(os.path.join(output_dir, summary_filename))
+            summary_content = {
+                "base_name": prefix,
+                "mode": meta_dict["mode"],
+                "units": meta_dict["units"],
+                "confidence": meta_dict["confidence"],
+                "raw_confidence": confidence,
+                "resolution": meta_dict["resolution"],
+                "is_georeferenced": is_georeferenced,
+                "crs": crs_str,
+                "statistics": compute_raster_statistics(primary_arr, nodata=nodata),
+                "raster_files": {
+                    "dsm": dsm_path,
+                    "pred_height": pred_path,
+                },
+                "metadata_json": meta_path,
+                "products": exported_products,
+            }
+            with open(summary_path, "w") as f:
+                json.dump(summary_content, f, indent=2)
 
     return exported_products
 
@@ -219,9 +342,8 @@ def assemble_and_export(
 ) -> ExportResult:
     """Backward compatible single-raster export."""
     os.makedirs(output_dir, exist_ok=True)
-    uid = uuid.uuid4().hex[:8]
     prefix = (base_name or "height_map").replace(" ", "_")
-    filename = f"{prefix}_{uid}.tif"
+    filename = f"{prefix}_dsm.tif"
     file_path = os.path.abspath(os.path.join(output_dir, filename))
 
     is_geo = export_single_raster(
@@ -248,4 +370,5 @@ def assemble_and_export(
         filename=filename,
         is_geotiff=is_geo,
     )
+
 

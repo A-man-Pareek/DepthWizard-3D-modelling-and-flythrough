@@ -131,6 +131,19 @@ class HTCDCInferenceRunner:
             new_key = k[7:] if k.startswith("module.") else k
             clean_state_dict[new_key] = v
 
+        # Dynamically adapt architecture to checkpoint (head_tail_cut layers)
+        has_htc = any("convs_htc" in k or "convs_out_bg" in k for k in clean_state_dict)
+        if has_htc != self.cfgs.get("head_tail_cut", False):
+            self.cfgs["head_tail_cut"] = has_htc
+            if has_htc:
+                self.cfgs["prob_loss"] = "dirac"
+                self.cfgs["prob_loss_bg"] = "bg"
+            else:
+                self.cfgs["prob_loss"] = False
+                self.cfgs.pop("prob_loss_bg", None)
+            self.model = UBins(self.cfgs)
+            self.model.to(self.device)
+
         self.model.load_state_dict(clean_state_dict, strict=strict)
         self.checkpoint_loaded = True
         self.loaded_checkpoint_path = checkpoint_path

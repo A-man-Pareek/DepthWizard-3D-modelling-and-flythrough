@@ -1,6 +1,6 @@
 ## data configuration
-data_dir: data/gbh_old/
-data_split_dirs: "data/split1"
+data_dir: C:\Users\Aman\Desktop\New folder\data\data_dir
+data_split_dirs: C:\Users\Aman\Desktop\New folder\data\data_dir
 test_data_split_dirs: ["data/MEL+", "data/LOS+", "data/SAO+", "data/MUC+", "data/GUA+", "data/split1+", "data/split2+"]
 
 patch_size: 4

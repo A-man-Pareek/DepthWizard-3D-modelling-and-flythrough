@@ -31,6 +31,8 @@ class PipelineResult:
         calibration: CalibrationResult,
         exported_products: Dict[str, Any],
         segmentation: Optional[Dict[str, Any]] = None,
+        metadata_json_path: Optional[str] = None,
+        summary_json_path: Optional[str] = None,
     ):
         self.inspection = inspection
         self.preprocessed = preprocessed
@@ -38,25 +40,49 @@ class PipelineResult:
         self.calibration = calibration
         self.exported_products = exported_products
         self.segmentation = segmentation
+        self._metadata_json_path = metadata_json_path
+        self._summary_json_path = summary_json_path
+
+    @property
+    def primary_height_array(self) -> np.ndarray:
+        """Return primary height 2D array (DSM if available, else metric_ndsm, else relative_ndsm)."""
+        if self.calibration.dsm is not None:
+            return self.calibration.dsm
+        if self.calibration.metric_ndsm is not None:
+            return self.calibration.metric_ndsm
+        return self.relative_ndsm
 
     @property
     def primary_product(self) -> Dict[str, Any]:
         """Return the highest fidelity height product exported."""
-        for key in ("dsm", "metric_ndsm", "relative_ndsm"):
+        for key in ("dsm", "pred_height", "metric_ndsm", "relative_ndsm"):
             if key in self.exported_products:
                 return self.exported_products[key]
         return next(iter(self.exported_products.values()), {})
 
     @property
+    def required_metadata(self) -> Dict[str, Any]:
+        """Exact 5-key specification metadata (mode, units, confidence, resolution, height_grid)."""
+        from .exporter import normalize_metadata_fields
+        return normalize_metadata_fields(
+            primary_arr=self.primary_height_array,
+            mode=self.calibration.mode,
+            units=self.calibration.units,
+            confidence=self.calibration.confidence,
+            is_georeferenced=self.inspection.is_georeferenced,
+        )
+
+    @property
     def metadata(self) -> Dict[str, Any]:
         """Clean summary metadata dictionary for API responses."""
-        prim = self.primary_product
+        req = self.required_metadata
         h, w = self.inspection.original_shape
         res: Dict[str, Any] = {
-            "mode": self.calibration.mode,
-            "units": self.calibration.units,
-            "confidence": self.calibration.confidence,
-            "resolution": [w, h],
+            "mode": req["mode"],
+            "units": req["units"],
+            "confidence": req["confidence"],
+            "resolution": [int(w), int(h)],
+            "height_grid": req["height_grid"],
             "is_georeferenced": self.inspection.is_georeferenced,
             "crs": str(self.inspection.crs) if self.inspection.crs else None,
             "bounds": list(self.inspection.bounds) if self.inspection.bounds else None,
@@ -64,6 +90,9 @@ class PipelineResult:
             "offset": float(self.calibration.offset),
             "calibration_metrics": self.calibration.metrics,
             "products": self.exported_products,
+            "raster_path": self.raster_path,
+            "metadata_json_path": self.metadata_json_path,
+            "summary_json_path": self.summary_json_path,
         }
         if self.segmentation:
             res["segmentation"] = {
@@ -74,11 +103,27 @@ class PipelineResult:
 
     @property
     def raster_path(self) -> str:
+        if "dsm" in self.exported_products:
+            return self.exported_products["dsm"].get("file_path", "")
+        if "pred_height" in self.exported_products:
+            return self.exported_products["pred_height"].get("file_path", "")
         return self.primary_product.get("file_path", "")
 
     @property
     def filename(self) -> str:
+        if "dsm" in self.exported_products:
+            return self.exported_products["dsm"].get("filename", "")
+        if "pred_height" in self.exported_products:
+            return self.exported_products["pred_height"].get("filename", "")
         return self.primary_product.get("filename", "")
+
+    @property
+    def metadata_json_path(self) -> str:
+        return self._metadata_json_path or ""
+
+    @property
+    def summary_json_path(self) -> str:
+        return self._summary_json_path or ""
 
     @property
     def is_geotiff(self) -> bool:
@@ -169,23 +214,35 @@ class HeightEstimationPipeline:
                 print(f"[Pipeline] Warning: Segmentation failed: {e}")
 
         # STEP 5: Export distinct geospatial products (GeoTIFFs with exact CRS and transform)
+        primary_height = calib.dsm if calib.dsm is not None else (
+            calib.metric_ndsm if calib.metric_ndsm is not None else calib.relative_ndsm
+        )
         products_to_export: Dict[str, Optional[np.ndarray]] = {
             "relative_ndsm": calib.relative_ndsm,
             "metric_ndsm": calib.metric_ndsm,
             "dem": calib.dem,
-            "dsm": calib.dsm,
+            "dsm": primary_height,
+            "pred_height": primary_height,
         }
         if seg_res is not None and "class_map" in seg_res:
             products_to_export["segmentation"] = seg_res["class_map"]
 
+        clean_base = (base_name or insp.driver or "raster").replace(" ", "_")
         exported_products = export_pipeline_products(
             products=products_to_export,
             output_dir=output_dir,
-            base_name=base_name or insp.driver or "raster",
+            base_name=clean_base,
             crs=insp.crs if insp.is_georeferenced else None,
             transform=insp.transform if insp.is_georeferenced else None,
             nodata=DEFAULT_NODATA,
+            mode=calib.mode,
+            units=calib.units,
+            confidence=calib.confidence,
+            generate_metadata_json=True,
         )
+
+        meta_json_path = os.path.abspath(os.path.join(output_dir, f"{clean_base}_metadata.json"))
+        summary_json_path = os.path.abspath(os.path.join(output_dir, f"{clean_base}_summary.json"))
 
         return PipelineResult(
             inspection=insp,
@@ -194,4 +251,6 @@ class HeightEstimationPipeline:
             calibration=calib,
             exported_products=exported_products,
             segmentation=seg_res,
+            metadata_json_path=meta_json_path,
+            summary_json_path=summary_json_path,
         )

@@ -11,7 +11,7 @@ from pipeline import HeightEstimationPipeline
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.join(PROJECT_ROOT, "data")
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, "outputs")
-ART_DIR = r"C:\Users\Aman\.gemini\antigravity-ide\brain\4e993859-5ac2-4d39-8f17-6f8afeac09bd"
+ART_DIR = r"C:\Users\Aman\.gemini\antigravity-ide\brain\26b960e3-776f-4e80-a368-f88189ab387d"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 IMG_PATH = os.path.join(DATA_DIR, "imgggh.avif")
