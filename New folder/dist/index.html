@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DepthWizard | Flythrough Viewer</title>
+    <script type="module" crossorigin src="/assets/index-C0mVqKj6.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-RamCe-PC.css">
+  </head>
+  <body>
+    <main id="app" aria-label="DepthWizard flythrough viewer"></main>
+    <div id="hud">
+      <div class="brand">DepthWizard</div>
+      <div class="mode-badge" id="mode-badge">Mode: FLYTHROUGH</div>
+      <button id="enter-button" type="button">Click to enter Flythrough</button>
+      <div class="measurement-hint" id="measurement-hint">Move cursor over a building to select it. Use the arrow keys to cycle nearby buildings.</div>
+      <div class="speed-control" id="speed-control">
+        <label for="speed-slider"><span>FLYTHROUGH SPEED</span><output id="speed-value" for="speed-slider">5 units/s</output></label>
+       x <input id="speed-slider" type="range" min="0.1" max="20" value="5" step="0.5" />
+      </div>
+      <div class="dimension-toggle" id="dimension-toggle">
+        <div class="panel-title">DIMENSION VIEW</div>
+        <button id="absolute-button" type="button" disabled>ABSOLUTE</button>
+        <button id="relative-button" type="button" class="active">RELATIVE</button>
+      </div>
+      <div class="controls" id="flythrough-controls">
+        <span>WASD / Arrow Keys <b>Move</b></span>
+        <span>Space <b>Up</b></span>
+        <span>Shift <b>Down</b></span>
+        <span>Mouse <b>Look</b></span>
+        <span>ESC <b>Exit</b></span>
+      </div>
+      <div class="controls" id="measurement-controls">
+        <span>Move cursor <b>Select building</b></span>
+        <span>Arrow Keys <b>Cycle nearby</b></span>
+        <span>Click <b>Select</b></span>
+        <span>ESC <b>Exit measurement</b></span>
+      </div>
+      <div id="status" role="status" aria-live="polite">Loading environment...</div>
+      <div id="selection" aria-live="polite"></div>
+    </div>
+  </body>
+</html>
