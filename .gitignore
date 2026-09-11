@@ -33,11 +33,11 @@ ENV/
 env.bak/
 venv.bak/
 
-# PyTorch / Deep Learning Checkpoints (>100MB exceeds standard GitHub limits)
-**/checkpoints/
-checkpoints/
-*.pth.tar
-*.pth
+# PyTorch / Deep Learning Checkpoints (Only epoch 5 checkpoint_best_rmse tracked via Git LFS)
+HTC-DC-Net/checkpoints/
+checkpoints/*.pth.tar
+checkpoints/*.pth
+!checkpoints/checkpoint_best_rmse.pth.tar
 *.ckpt
 *.h5
 
