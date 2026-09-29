@@ -1,6 +1,7 @@
 /**
  * DepthWizard Damage & Exposure Calculator (Client-side)
- * Computes 2D spatial footprint intersection and exposure percentages.
+ * Computes 2D spatial footprint intersection and exposure percentages
+ * for buildings, roads, and environmental vegetation.
  */
 
 class DamageCalculator {
@@ -33,29 +34,29 @@ class DamageCalculator {
         if (!this.pointInPolygon(px, py, polygon)) return false;
         for (let k = 0; k < holes.length; k++) {
             if (this.pointInPolygon(px, py, holes[k])) {
-                return false; // Point is inside an interior courtyard/hole
+                return false;
             }
         }
         return true;
     }
 
     /**
-     * Computes exposure percentage and affected area for a single building.
+     * Computes exposure percentage and affected area for a single building against hazard scenario.
      */
-    calculateBuildingExposure(building, floodScenario) {
+    calculateBuildingExposure(building, hazardScenario) {
         const poly = building.polygon;
         const holes = building.holes || [];
-        const bbox = building.bbox || [0, 0, 1024, 1024]; // [bx, by, bw, bh]
+        const bbox = building.bbox || [0, 0, 1024, 1024];
         const bx = bbox[0], by = bbox[1], bw = bbox[2], bh = bbox[3];
 
         const totalPixels = building.areaPixels || Math.max(1, bw * bh);
         const totalSqM = Math.round(totalPixels * this.sqMetersPerPixel * 100) / 100;
 
-        // Quick bounds check against surge boundary
-        let allFlooded = true;
-        let allDry = true;
+        const testFn = hazardScenario.isPointFlooded || hazardScenario.isPointBurned || hazardScenario.isPointInSwath || hazardScenario.isPointInLandslide;
 
-        // Test corners of bounding box
+        // Quick bounds test
+        let allImpacted = true;
+        let allClear = true;
         const corners = [
             [bx, by],
             [bx + bw, by],
@@ -64,14 +65,14 @@ class DamageCalculator {
         ];
 
         for (const [cx, cy] of corners) {
-            if (floodScenario.isPointFlooded(cx, cy)) {
-                allDry = false;
+            if (testFn(cx, cy)) {
+                allClear = false;
             } else {
-                allFlooded = false;
+                allImpacted = false;
             }
         }
 
-        if (allDry) {
+        if (allClear) {
             return {
                 affectedPixels: 0,
                 affectedAreaSqMeters: 0.0,
@@ -81,7 +82,7 @@ class DamageCalculator {
             };
         }
 
-        if (allFlooded) {
+        if (allImpacted) {
             return {
                 affectedPixels: totalPixels,
                 affectedAreaSqMeters: totalSqM,
@@ -92,39 +93,37 @@ class DamageCalculator {
         }
 
         // Adaptive spatial sampling inside the building bounding box
-        const targetSamples = 200;
+        const targetSamples = 180;
         const sampleStep = Math.max(1, Math.floor(Math.sqrt((bw * bh) / targetSamples)));
 
         let sampleInsideCount = 0;
-        let sampleFloodedCount = 0;
+        let sampleImpactedCount = 0;
 
         for (let py = by; py <= by + bh; py += sampleStep) {
             for (let px = bx; px <= bx + bw; px += sampleStep) {
                 if (this.isPointInsideBuilding(px, py, poly, holes)) {
                     sampleInsideCount++;
-                    if (floodScenario.isPointFlooded(px, py)) {
-                        sampleFloodedCount++;
+                    if (testFn(px, py)) {
+                        sampleImpactedCount++;
                     }
                 }
             }
         }
 
         if (sampleInsideCount === 0) {
-            // Fallback: check building centroid
             const cx = building.centroid ? building.centroid.x : (bx + bw / 2);
             const cy = building.centroid ? building.centroid.y : (by + bh / 2);
-            const isCentroidFlooded = floodScenario.isPointFlooded(cx, cy);
-            const exp = isCentroidFlooded ? 100.0 : 0.0;
+            const isCentroidImpacted = testFn(cx, cy);
             return {
-                affectedPixels: isCentroidFlooded ? totalPixels : 0,
-                affectedAreaSqMeters: isCentroidFlooded ? totalSqM : 0.0,
+                affectedPixels: isCentroidImpacted ? totalPixels : 0,
+                affectedAreaSqMeters: isCentroidImpacted ? totalSqM : 0.0,
                 totalAreaSqMeters: totalSqM,
-                exposurePercentage: exp,
-                isAffected: isCentroidFlooded
+                exposurePercentage: isCentroidImpacted ? 100.0 : 0.0,
+                isAffected: isCentroidImpacted
             };
         }
 
-        const exposurePct = Math.min(100.0, Math.max(0.0, (sampleFloodedCount / sampleInsideCount) * 100.0));
+        const exposurePct = Math.min(100.0, Math.max(0.0, (sampleImpactedCount / sampleInsideCount) * 100.0));
         const affectedPixels = Math.round((exposurePct / 100.0) * totalPixels);
         const affectedSqM = Math.round(affectedPixels * this.sqMetersPerPixel * 100) / 100;
 
@@ -138,13 +137,37 @@ class DamageCalculator {
     }
 
     /**
-     * Assesses all building entities against the flood scenario.
+     * Assesses all building entities against the hazard scenario.
      */
-    assessAllBuildings(buildings, floodScenario) {
+    assessAllBuildings(buildings, hazardScenario) {
         return buildings.map(b => {
-            const exp = this.calculateBuildingExposure(b, floodScenario);
+            const exp = this.calculateBuildingExposure(b, hazardScenario);
             return { ...b, ...exp };
         });
+    }
+
+    /**
+     * Calculates infrastructure (roads) and environmental (vegetation) affected metrics.
+     */
+    assessInfrastructureAndEnvironment(hazardScenario, sceneData) {
+        const hazardArea = hazardScenario.floodedAreaSqMeters ||
+                           hazardScenario.burnedAreaSqMeters ||
+                           hazardScenario.impactedAreaSqMeters ||
+                           hazardScenario.displacedAreaSqMeters || 0;
+
+        // Estimated road impact: roads total ~7,806 pixels (~2.7km)
+        // Correlate with hazard area fraction over 1024x1024 total terrain
+        const totalTerrainAreaSqM = 1024 * 1024 * this.sqMetersPerPixel; // 128,450 m^2
+        const fraction = Math.min(1.0, hazardArea / totalTerrainAreaSqM);
+
+        const estRoadMeters = Math.round(fraction * 2730 * 10) / 10;
+        const estVegSqM = Math.round(fraction * 29020 * 10) / 10;
+
+        return {
+            affectedRoadsLengthMeters: estRoadMeters,
+            affectedVegetationAreaSqMeters: estVegSqM,
+            estimatedPopulation: "Unavailable (Requires Census Layer)"
+        };
     }
 }
 

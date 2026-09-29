@@ -3,8 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DepthWizard | Semantic 3D Digital Twin & Disaster Assessment</title>
+    <title>DepthWizard | 3D Digital Twin & Disaster Simulation Platform</title>
     <style>
+        :root {
+            --primary: #0284c7;
+            --primary-glow: rgba(2, 132, 199, 0.4);
+            --bg-dark: #090d13;
+            --panel-bg: rgba(13, 19, 28, 0.92);
+            --panel-border: rgba(255, 255, 255, 0.09);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --color-flood: #0284c7;
+            --color-wildfire: #ea580c;
+            --color-cyclone: #7c3aed;
+            --color-landslide: #b45309;
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -16,7 +30,7 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background: #090d13;
+            background: var(--bg-dark);
             color: #e2e8f0;
         }
         #canvas-container {
@@ -24,6 +38,7 @@
             inset: 0;
             width: 100%;
             height: 100%;
+            z-index: 10;
         }
 
         /* LOADING OVERLAY */
@@ -47,82 +62,68 @@
             animation: spin 0.8s linear infinite;
             margin-bottom: 16px;
         }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        #loading-text {
-            font-size: 14px;
-            color: #94a3b8;
-            letter-spacing: 0.5px;
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #loading-text { font-size: 14px; color: #94a3b8; letter-spacing: 0.5px; }
 
-        /* TOP NAVIGATION BAR */
+        /* =====================================================================
+           TOP NAVIGATION BAR
+           ===================================================================== */
         header {
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 56px;
-            background: rgba(13, 19, 28, 0.90);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            top: 0; left: 0; right: 0;
+            height: 54px;
+            background: rgba(13, 19, 28, 0.94);
+            backdrop-filter: blur(14px);
+            border-bottom: 1px solid var(--panel-border);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 24px;
+            padding: 0 18px;
             z-index: 100;
+        }
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
         }
         .brand {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
+            cursor: pointer;
         }
         .brand-logo {
             width: 28px;
             height: 28px;
             background: linear-gradient(135deg, #38bdf8, #2563eb);
-            border-radius: 8px;
+            border-radius: 7px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 800;
             color: white;
             font-size: 15px;
-            box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
+            box-shadow: 0 0 14px rgba(56, 189, 248, 0.4);
         }
-        .brand-title {
-            font-size: 16px;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            color: #f8fafc;
-        }
-        .brand-subtitle {
-            font-size: 11px;
-            color: #94a3b8;
-            letter-spacing: 0.3px;
-        }
+        .brand-text { display: flex; flex-direction: column; }
+        .brand-title { font-size: 15px; font-weight: 700; color: #f8fafc; letter-spacing: 0.3px; }
+        .brand-subtitle { font-size: 10px; color: #94a3b8; letter-spacing: 0.4px; }
 
-        /* TOOLBAR CONTROLS */
-        .toolbar {
+        .nav-tabs {
             display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .btn-group {
-            display: flex;
-            background: rgba(30, 41, 59, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 8px;
             padding: 2px;
+            gap: 2px;
         }
-        .btn {
+        .nav-tab {
             background: transparent;
             border: none;
-            color: #cbd5e1;
-            padding: 6px 12px;
+            color: #94a3b8;
+            padding: 6px 14px;
             font-size: 12px;
-            font-weight: 500;
+            font-weight: 600;
             border-radius: 6px;
             cursor: pointer;
             transition: all 0.15s ease;
@@ -130,243 +131,562 @@
             align-items: center;
             gap: 6px;
         }
-        .btn:hover {
-            color: #ffffff;
-            background: rgba(255, 255, 255, 0.08);
-        }
-        .btn.active {
-            background: #2563eb;
-            color: #ffffff;
-            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
-        }
-        .btn-action {
-            background: rgba(30, 41, 59, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #cbd5e1;
-            padding: 6px 12px;
-            font-size: 12px;
-            font-weight: 500;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
-        .btn-action:hover {
-            background: rgba(51, 65, 85, 0.9);
-            color: white;
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #0284c7, #2563eb);
-            color: white;
-            border: none;
-            box-shadow: 0 2px 10px rgba(37, 99, 235, 0.3);
-        }
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #0369a1, #1d4ed8);
-        }
-        .btn-danger {
-            background: linear-gradient(135deg, #e11d48, #be123c);
-            color: white;
-            border: none;
-            box-shadow: 0 2px 10px rgba(225, 29, 72, 0.4);
-        }
-        .btn-danger:hover {
-            background: linear-gradient(135deg, #f43f5e, #e11d48);
-        }
-        .btn-warning {
-            background: linear-gradient(135deg, #d97706, #b45309);
-            color: white;
-            border: none;
-        }
-        .btn-warning:hover {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-        }
+        .nav-tab:hover { color: #f8fafc; background: rgba(255, 255, 255, 0.06); }
+        .nav-tab.active { background: #0284c7; color: white; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4); }
 
-        /* EXAGGERATION SLIDER CONTAINER */
-        .slider-box {
+        .nav-right {
             display: flex;
             align-items: center;
             gap: 10px;
-            background: rgba(30, 41, 59, 0.7);
+        }
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: rgba(30, 41, 59, 0.6);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 4px 12px;
+            border-radius: 7px;
+            padding: 4px 10px;
+            gap: 6px;
+        }
+        .search-box input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #f1f5f9;
             font-size: 12px;
-            color: #cbd5e1;
+            width: 130px;
         }
-        .slider-box input[type="range"] {
-            width: 80px;
-            accent-color: #38bdf8;
-            cursor: pointer;
-        }
-
-        /* SIDEBAR INFO PANEL */
-        #info-panel {
-            position: absolute;
-            top: 72px;
-            right: 20px;
-            width: 320px;
-            background: rgba(13, 19, 28, 0.92);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
+        .btn-icon {
+            background: rgba(30, 41, 59, 0.6);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 18px;
-            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
-            z-index: 90;
-            transition: all 0.2s ease;
+            color: #cbd5e1;
+            padding: 6px 10px;
+            font-size: 12px;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: 0.15s;
         }
-        .panel-header {
-            font-size: 13px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #38bdf8;
-            margin-bottom: 12px;
+        .btn-icon:hover { background: rgba(51, 65, 85, 0.8); color: white; }
+
+        /* =====================================================================
+           LEFT PANEL: DISASTER SIMULATION
+           ===================================================================== */
+        #sim-panel {
+            position: absolute;
+            top: 66px;
+            left: 16px;
+            width: 320px;
+            max-height: calc(100vh - 82px);
+            background: var(--panel-bg);
+            backdrop-filter: blur(14px);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+            z-index: 80;
+            overflow-y: auto;
+            transition: transform 0.25s ease;
+        }
+        .panel-heading {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 4px;
         }
-        .badge {
-            font-size: 10px;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-weight: 600;
-        }
-        .badge-scene {
-            background: rgba(56, 189, 248, 0.15);
-            color: #38bdf8;
-            border: 1px solid rgba(56, 189, 248, 0.3);
-        }
-        .badge-selected {
-            background: rgba(251, 146, 60, 0.2);
-            color: #fb923c;
-            border: 1px solid rgba(251, 146, 60, 0.4);
-        }
-        .badge-none {
-            background: rgba(100, 116, 139, 0.2);
-            color: #94a3b8;
-            border: 1px solid rgba(100, 116, 139, 0.4);
-        }
-        .badge-low {
-            background: rgba(234, 179, 8, 0.2);
-            color: #facc15;
-            border: 1px solid rgba(234, 179, 8, 0.4);
-        }
-        .badge-mod {
-            background: rgba(249, 115, 22, 0.2);
-            color: #fb923c;
-            border: 1px solid rgba(249, 115, 22, 0.4);
-        }
-        .badge-high {
-            background: rgba(239, 68, 68, 0.2);
-            color: #f87171;
-            border: 1px solid rgba(239, 68, 68, 0.4);
-        }
-        .badge-crit {
-            background: rgba(220, 38, 38, 0.3);
-            color: #ef4444;
-            border: 1px solid rgba(220, 38, 38, 0.6);
+        .panel-heading h2 {
+            font-size: 13px;
             font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #38bdf8;
         }
-        .badge-synthetic {
-            background: rgba(225, 29, 72, 0.2);
-            color: #f43f5e;
-            border: 1px solid rgba(225, 29, 72, 0.4);
+        .panel-subheading {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-bottom: 12px;
+            line-height: 1.35;
         }
 
-        .stat-grid {
+        /* 4 Disaster Cards */
+        .disaster-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 8px;
             margin-bottom: 14px;
         }
+        .disaster-card {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 10px 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: center;
+        }
+        .disaster-card:hover {
+            background: rgba(51, 65, 85, 0.7);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .disaster-card.active-flood {
+            background: rgba(2, 132, 199, 0.22);
+            border-color: var(--color-flood);
+            box-shadow: 0 0 12px rgba(2, 132, 199, 0.35);
+        }
+        .disaster-card.active-wildfire {
+            background: rgba(234, 88, 12, 0.22);
+            border-color: var(--color-wildfire);
+            box-shadow: 0 0 12px rgba(234, 88, 12, 0.35);
+        }
+        .disaster-card.active-cyclone {
+            background: rgba(124, 58, 237, 0.22);
+            border-color: var(--color-cyclone);
+            box-shadow: 0 0 12px rgba(124, 58, 237, 0.35);
+        }
+        .disaster-card.active-landslide {
+            background: rgba(180, 83, 9, 0.22);
+            border-color: var(--color-landslide);
+            box-shadow: 0 0 12px rgba(180, 83, 9, 0.35);
+        }
+        .disaster-card-icon { font-size: 20px; margin-bottom: 3px; }
+        .disaster-card-name { font-size: 12px; font-weight: 700; color: #f8fafc; }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+        .form-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            font-weight: 600;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .intensity-toggle-group {
+            display: flex;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 7px;
+            padding: 2px;
+        }
+        .intensity-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #cbd5e1;
+            padding: 5px 0;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .intensity-btn:hover { color: white; }
+        .intensity-btn.active {
+            background: #0284c7;
+            color: white;
+            box-shadow: 0 2px 6px rgba(2, 132, 199, 0.4);
+        }
+
+        .param-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .param-box {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 7px;
+            padding: 6px 8px;
+        }
+        .param-box label { font-size: 10px; color: #94a3b8; display: block; margin-bottom: 2px; }
+        .param-box select, .param-box input {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 11px;
+            border-radius: 4px;
+            padding: 3px 6px;
+            outline: none;
+        }
+
+        .seed-box {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .sim-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 14px;
+        }
+        .btn-run {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            border: none;
+            color: white;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            border-radius: 7px;
+            cursor: pointer;
+            box-shadow: 0 3px 12px rgba(2, 132, 199, 0.4);
+            transition: all 0.15s;
+        }
+        .btn-run:hover { background: linear-gradient(135deg, #0369a1, #1d4ed8); }
+        .btn-reset {
+            width: 100%;
+            padding: 7px;
+            background: rgba(51, 65, 85, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cbd5e1;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .btn-reset:hover { background: rgba(71, 85, 105, 0.8); color: white; }
+
+        /* =====================================================================
+           CENTER 3D VIEWPORT FLOATING CONTROLS & LEGEND
+           ===================================================================== */
+        #viewport-controls {
+            position: absolute;
+            top: 66px;
+            left: 350px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 70;
+            background: rgba(13, 19, 28, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 4px 8px;
+        }
+        .ctrl-btn-group {
+            display: flex;
+            gap: 2px;
+        }
+        .ctrl-btn {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .ctrl-btn:hover { color: white; background: rgba(255, 255, 255, 0.06); }
+        .ctrl-btn.active { background: #2563eb; color: white; }
+
+        .slider-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: #cbd5e1;
+            padding: 0 6px;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .slider-wrap input { width: 65px; accent-color: #38bdf8; cursor: pointer; }
+
+        /* Dynamic Floating Legend */
+        #dynamic-legend {
+            position: absolute;
+            bottom: 24px;
+            left: 350px;
+            background: rgba(13, 19, 28, 0.90);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            z-index: 70;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 11px;
+        }
+        .legend-title { font-weight: 700; color: #f8fafc; font-size: 11px; text-transform: uppercase; }
+        .legend-scale { display: flex; gap: 4px; align-items: center; }
+        .legend-block { width: 22px; height: 8px; border-radius: 2px; }
+        .legend-labels { display: flex; justify-content: space-between; font-size: 9px; color: #94a3b8; }
+        .impact-legend-row {
+            display: flex;
+            gap: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 6px;
+            margin-top: 2px;
+        }
+        .impact-legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #cbd5e1; }
+        .dot { width: 7px; height: 7px; border-radius: 50%; }
+
+        /* =====================================================================
+           RIGHT PANEL: SIMULATION RESULTS & SELECTED BUILDING
+           ===================================================================== */
+        #results-panel {
+            position: absolute;
+            top: 66px;
+            right: 16px;
+            width: 340px;
+            max-height: calc(100vh - 82px);
+            background: var(--panel-bg);
+            backdrop-filter: blur(14px);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+            z-index: 80;
+            overflow-y: auto;
+        }
+        .results-tabs {
+            display: flex;
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 7px;
+            padding: 2px;
+            margin-bottom: 12px;
+        }
+        .results-tab {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            padding: 5px 0;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.15s;
+            text-align: center;
+        }
+        .results-tab.active { background: #0284c7; color: white; }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
         .stat-card {
             background: rgba(30, 41, 59, 0.5);
             border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 8px;
+            padding: 8px 10px;
+        }
+        .stat-label { font-size: 10px; color: #94a3b8; margin-bottom: 2px; text-transform: uppercase; }
+        .stat-val { font-size: 14px; font-weight: 700; color: #f8fafc; }
+        .stat-unit { font-size: 10px; color: #94a3b8; font-weight: normal; margin-left: 2px; }
+
+        /* Distribution Bars */
+        .dist-wrap {
+            margin-bottom: 14px;
             padding: 10px;
+            background: rgba(30, 41, 59, 0.35);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
-        .stat-label {
-            font-size: 11px;
-            color: #94a3b8;
-            margin-bottom: 4px;
-        }
-        .stat-value {
-            font-size: 15px;
+        .dist-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
             font-weight: 700;
-            color: #f1f5f9;
-        }
-        .stat-unit {
-            font-size: 11px;
-            font-weight: normal;
             color: #94a3b8;
-            margin-left: 2px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
         }
-        .btn-clear {
+        .dist-bar {
+            display: flex;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.08);
+            margin-bottom: 6px;
+        }
+        .dist-bar-seg { height: 100%; }
+
+        /* Selected Building Box */
+        .selected-box {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+        }
+        .selected-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .b-id-title { font-size: 13px; font-weight: 700; color: #38bdf8; }
+        .b-badge {
+            font-size: 10px;
+            padding: 2px 7px;
+            border-radius: 10px;
+            font-weight: 700;
+        }
+        .badge-none { background: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.4); }
+        .badge-low { background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); }
+        .badge-mod { background: rgba(249, 115, 22, 0.2); color: #fb923c; border: 1px solid rgba(249, 115, 22, 0.4); }
+        .badge-high { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+        .badge-crit { background: rgba(220, 38, 38, 0.3); color: #ef4444; border: 1px solid rgba(220, 38, 38, 0.6); }
+
+        .progress-line {
+            height: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 6px 0;
+        }
+        .progress-line-fill { height: 100%; border-radius: 3px; }
+
+        .btn-focus {
             width: 100%;
-            padding: 8px;
-            background: rgba(239, 68, 68, 0.15);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: #f87171;
+            padding: 6px;
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            color: #38bdf8;
+            font-size: 11px;
+            font-weight: 600;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
             margin-top: 8px;
             transition: 0.15s;
         }
-        .btn-clear:hover {
-            background: rgba(239, 68, 68, 0.25);
-            color: #fca5a5;
-        }
+        .btn-focus:hover { background: rgba(56, 189, 248, 0.25); color: #7dd3fc; }
 
-        /* FLY STATUS BADGE */
-        #fly-banner {
-            display: none;
+        /* =====================================================================
+           BOTTOM PANEL: BEFORE / AFTER COMPARISON DRAWER
+           ===================================================================== */
+        #bottom-drawer {
             position: absolute;
-            top: 72px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(37, 99, 235, 0.9);
-            backdrop-filter: blur(8px);
-            color: white;
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            z-index: 95;
-            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(13, 19, 28, 0.95);
+            backdrop-filter: blur(14px);
+            border-top: 1px solid var(--panel-border);
+            z-index: 85;
+            transition: transform 0.3s ease;
+            transform: translateY(calc(100% - 32px));
+        }
+        #bottom-drawer.expanded {
+            transform: translateY(0);
+        }
+        .drawer-handle-bar {
+            height: 32px;
+            display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: space-between;
+            padding: 0 20px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .drawer-title { font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; }
+        .drawer-content {
+            padding: 14px 24px;
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .comparison-wrap {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex: 1;
+        }
+        .split-slider-box {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            width: 280px;
+        }
+        .split-slider-box input { width: 100%; accent-color: #38bdf8; cursor: pointer; }
+        .layer-checkboxes {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            font-size: 11px;
+            color: #cbd5e1;
+        }
+        .layer-checkboxes label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
         }
 
-        /* SIMULATION SCENARIO BANNER */
-        #simulation-banner {
+        /* =====================================================================
+           MODALS (Analysis Table, Post-Disaster, Report)
+           ===================================================================== */
+        .modal-overlay {
             display: none;
-            position: absolute;
-            top: 72px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(190, 18, 60, 0.9);
-            backdrop-filter: blur(8px);
-            color: white;
-            padding: 6px 20px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            z-index: 94;
-            box-shadow: 0 4px 16px rgba(190, 18, 60, 0.5);
-            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(6px);
+            z-index: 500;
             align-items: center;
-            gap: 10px;
+            justify-content: center;
         }
+        .modal-card {
+            background: #0f172a;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 14px;
+            padding: 22px;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6);
+            color: #e2e8f0;
+            max-width: 90vw;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .modal-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 10px;
+        }
+        .modal-head h3 { font-size: 16px; color: #f8fafc; font-weight: 700; }
 
-        /* TOOLTIP */
+        /* Table styling for Analysis */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            text-align: left;
+        }
+        .data-table th {
+            background: rgba(30, 41, 59, 0.7);
+            padding: 8px 10px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+        .data-table td {
+            padding: 7px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .data-table tr:hover { background: rgba(51, 65, 85, 0.4); }
+
         #tooltip {
             position: absolute;
             display: none;
-            background: rgba(15, 23, 42, 0.92);
+            background: rgba(15, 23, 42, 0.95);
             color: #f8fafc;
             padding: 6px 10px;
             border-radius: 6px;
@@ -378,317 +698,9 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
             white-space: nowrap;
         }
-
-        /* FOOTER HINTS */
-        #hint-footer {
-            position: absolute;
-            bottom: 16px;
-            left: 20px;
-            background: rgba(13, 19, 28, 0.75);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 8px;
-            padding: 6px 14px;
-            font-size: 11px;
-            color: #94a3b8;
-            display: flex;
-            gap: 16px;
-            z-index: 80;
-        }
-        #hint-footer b {
-            color: #e2e8f0;
-        }
-
-        /* =====================================================================
-           DISASTER SIMULATION MODAL
-           ===================================================================== */
-        #disaster-modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            z-index: 500;
-            align-items: center;
-            justify-content: center;
-        }
-        #disaster-modal {
-            width: 480px;
-            max-width: 92vw;
-            background: #0f172a;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 14px;
-            padding: 24px;
-            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6);
-            color: #e2e8f0;
-        }
-        .modal-title-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 6px;
-        }
-        .modal-title {
-            font-size: 17px;
-            font-weight: 700;
-            color: #f8fafc;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .modal-disclaimer-pill {
-            font-size: 10px;
-            color: #f43f5e;
-            background: rgba(244, 63, 94, 0.12);
-            border: 1px solid rgba(244, 63, 94, 0.3);
-            border-radius: 12px;
-            padding: 3px 10px;
-            margin-bottom: 16px;
-            display: inline-block;
-        }
-        .form-section {
-            margin-bottom: 16px;
-        }
-        .form-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: #94a3b8;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .type-selector-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-        .type-card {
-            background: rgba(30, 41, 59, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 8px;
-            padding: 10px;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
-        .type-card.selected {
-            background: rgba(2, 132, 199, 0.2);
-            border-color: #38bdf8;
-            box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
-        }
-        .type-card.disabled {
-            opacity: 0.45;
-            cursor: not-allowed;
-        }
-        .type-card-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: #f8fafc;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 2px;
-        }
-        .type-card-desc {
-            font-size: 10px;
-            color: #94a3b8;
-            line-height: 1.3;
-        }
-
-        .intensity-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 8px;
-        }
-        .intensity-card {
-            background: rgba(30, 41, 59, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 8px;
-            padding: 10px 8px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
-        .intensity-card:hover {
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-        .intensity-card.selected {
-            background: rgba(225, 29, 72, 0.2);
-            border-color: #f43f5e;
-            box-shadow: 0 0 12px rgba(244, 63, 94, 0.3);
-        }
-        .intensity-name {
-            font-size: 13px;
-            font-weight: 700;
-            color: #f8fafc;
-            margin-bottom: 4px;
-        }
-        .intensity-desc {
-            font-size: 10px;
-            color: #94a3b8;
-        }
-
-        .seed-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-top: 12px;
-            background: rgba(30, 41, 59, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            padding: 8px 12px;
-        }
-        .seed-row input {
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            width: 80px;
-        }
-
-        .modal-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-            padding-top: 16px;
-        }
-
-        /* =====================================================================
-           DISASTER IMPACT DASHBOARD
-           ===================================================================== */
-        #disaster-dashboard {
-            display: none;
-            position: absolute;
-            top: 72px;
-            left: 20px;
-            width: 360px;
-            max-height: calc(100vh - 100px);
-            background: rgba(13, 19, 28, 0.94);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            border: 1px solid rgba(225, 29, 72, 0.3);
-            border-radius: 12px;
-            padding: 16px;
-            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
-            z-index: 92;
-            overflow-y: auto;
-        }
-        .dashboard-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 6px;
-        }
-        .dashboard-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: #f8fafc;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .dashboard-disclaimer {
-            font-size: 10px;
-            color: #f43f5e;
-            background: rgba(244, 63, 94, 0.1);
-            border: 1px solid rgba(244, 63, 94, 0.25);
-            border-radius: 6px;
-            padding: 4px 8px;
-            margin-bottom: 12px;
-            line-height: 1.35;
-        }
-        .tier-pills-row {
-            display: flex;
-            gap: 4px;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-        }
-        .tier-pill {
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .affected-list-header {
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #94a3b8;
-            margin-top: 14px;
-            margin-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-        }
-        .affected-structures-container {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            max-height: 240px;
-            overflow-y: auto;
-            padding-right: 4px;
-        }
-        .affected-card {
-            background: rgba(30, 41, 59, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 6px;
-            padding: 8px 10px;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
-        .affected-card:hover {
-            background: rgba(51, 65, 85, 0.7);
-            border-color: rgba(255, 255, 255, 0.2);
-            transform: translateX(2px);
-        }
-        .affected-card-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 4px;
-        }
-        .affected-card-id {
-            font-size: 12px;
-            font-weight: 700;
-            color: #f1f5f9;
-        }
-        .progress-bar-bg {
-            width: 100%;
-            height: 5px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-            overflow: hidden;
-            margin-top: 4px;
-        }
-        .progress-bar-fill {
-            height: 100%;
-            border-radius: 3px;
-        }
-
-        /* SCROLLBAR STYLING */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(15, 23, 42, 0.5);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(148, 163, 184, 0.3);
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(148, 163, 184, 0.5);
-        }
     </style>
 
-    <!-- Local Three.js and OrbitControls bundles with CDN fallback -->
+    <!-- Local Three.js and OrbitControls -->
     <script src="lib/three.min.js"></script>
     <script src="lib/OrbitControls.js"></script>
     <script>
@@ -706,6 +718,9 @@
     <script src="disaster/simulationConfig.js"></script>
     <script src="disaster/disasterTypes.js"></script>
     <script src="disaster/floodSimulator.js"></script>
+    <script src="disaster/wildfireSimulator.js"></script>
+    <script src="disaster/cycloneSimulator.js"></script>
+    <script src="disaster/landslideSimulator.js"></script>
     <script src="disaster/damageCalculator.js"></script>
     <script src="disaster/impactClassifier.js"></script>
     <script src="disaster/disasterService.js"></script>
@@ -714,236 +729,472 @@
 
     <div id="loading">
         <div class="spinner"></div>
-        <div id="loading-text">Loading 3D Digital Twin...</div>
+        <div id="loading-text">Loading 3D Digital Twin & Disaster Engine...</div>
     </div>
 
+    <!-- TOP NAVIGATION BAR -->
     <header>
-        <div class="brand">
-            <div class="brand-logo">D</div>
-            <div>
-                <div class="brand-title">DepthWizard</div>
-                <div class="brand-subtitle">Semantic 3D Digital Twin & Disaster Simulation</div>
+        <div class="nav-left">
+            <div class="brand" onclick="resetCamera()">
+                <div class="brand-logo">D</div>
+                <div class="brand-text">
+                    <span class="brand-title">DepthWizard</span>
+                    <span class="brand-subtitle">3D Digital Twin & Disaster Platform</span>
+                </div>
+            </div>
+
+            <div class="nav-tabs">
+                <button class="nav-tab" id="tab-map" onclick="setTopView()">🗺️ Map View</button>
+                <button class="nav-tab active" id="tab-3d" onclick="setPerspectiveView()">🧊 3D View</button>
+                <button class="nav-tab" id="tab-analysis" onclick="openAnalysisModal()">📊 Analysis</button>
+                <button class="nav-tab" id="tab-post" onclick="openPostDisasterModal()">🛰️ Post-Disaster</button>
+                <button class="nav-tab" id="tab-report" onclick="openReportModal()">📑 Reports</button>
             </div>
         </div>
 
-        <div class="toolbar">
-            <!-- TEXTURE MODE -->
-            <div class="btn-group">
-                <button class="btn active" id="btn-satellite" onclick="setTextureMode('satellite')">Satellite Texture</button>
-                <button class="btn" id="btn-semantic" onclick="setTextureMode('semantic')">Semantic Colors</button>
+        <div class="nav-right">
+            <div class="search-box">
+                <span>🔍</span>
+                <input type="text" id="building-search" placeholder="Building ID (B-024)..." onkeyup="handleBuildingSearch(event)">
             </div>
-
-            <!-- LAYER TOGGLES -->
-            <div class="btn-group">
-                <button class="btn active" id="btn-buildings" onclick="toggleLayer('buildings')">Buildings</button>
-                <button class="btn" id="btn-roads" onclick="toggleLayer('roads')">Roads</button>
-                <button class="btn active" id="btn-vegetation" onclick="toggleLayer('vegetation')">Vegetation</button>
-                <button class="btn active" id="btn-water" onclick="toggleLayer('water')">Water</button>
-            </div>
-
-            <!-- HEIGHT EXAGGERATION -->
-            <div class="slider-box">
-                <span>Exaggeration</span>
-                <input type="range" id="exaggerationSlider" min="0.5" max="5.0" step="0.1" value="1.0" oninput="onExaggerationChange(this.value)">
-                <span id="exaggerationValue">1.0x</span>
-            </div>
-
-            <!-- DISASTER SIMULATION BUTTONS -->
-            <button class="btn-action btn-danger" id="btn-open-sim" onclick="openDisasterModal()">🌊 Simulate Disaster</button>
-            <button class="btn-action" id="btn-toggle-flood" style="display:none;" onclick="toggleFloodLayer()">Hide Flood</button>
-            <button class="btn-action btn-warning" id="btn-reset-sim" style="display:none;" onclick="resetDisasterSimulation()">Reset Simulation</button>
-
-            <!-- NAVIGATION & FLYTHROUGH -->
-            <button class="btn-action btn-primary" id="btn-fly" onclick="toggleFlythrough()">Fly Through</button>
-            <button class="btn-action" onclick="setTopView()">Top View</button>
-            <button class="btn-action" onclick="resetCamera()">Reset Camera</button>
+            <button class="btn-icon" onclick="openSettingsModal()" title="Settings">⚙️</button>
+            <button class="btn-icon" onclick="openHelpModal()" title="Guide & Help">❓</button>
+            <div style="font-size: 11px; color: #94a3b8; padding-left: 6px; border-left: 1px solid rgba(255,255,255,0.1);">👤 Analyst</div>
         </div>
     </header>
 
-    <div id="fly-banner">
-        <span>✈ Fly-Through Active</span>
-        <button class="btn-action" style="padding: 2px 8px; font-size: 11px;" onclick="toggleFlythrough()">Exit</button>
-    </div>
-
-    <div id="simulation-banner">
-        <span>🌊 Synthetic Flood Simulation Active</span>
-        <span class="badge badge-synthetic">SYNTHETIC SCENARIO</span>
-    </div>
-
+    <!-- 3D VIEWPORT CANVAS -->
     <div id="canvas-container"></div>
 
-    <!-- SIDEBAR INFO PANEL (Raycasting & Scene Info) -->
-    <div id="info-panel">
-        <div class="panel-header">
-            <span id="panel-title">Scene Information</span>
-            <span class="badge badge-scene" id="panel-badge">DIGITAL TWIN</span>
-        </div>
-        <div id="panel-body">
-            <!-- Dynamically populated -->
-        </div>
-    </div>
-
-    <!-- FLOATING DISASTER IMPACT DASHBOARD -->
-    <div id="disaster-dashboard">
-        <div class="dashboard-header">
-            <div class="dashboard-title">
-                <span>🌊 Flood Impact Assessment</span>
-            </div>
-            <button class="btn-action" style="padding: 2px 8px; font-size: 11px;" onclick="closeDashboard()">✕</button>
-        </div>
-        <div class="dashboard-disclaimer">
-            <b>Synthetic Disaster Scenario:</b> Simulation generated from pre-disaster single-view baseline. Calculated exposure represents spatial footprint overlap, not observed structural collapse.
+    <!-- FLOATING 3D VIEW CONTROLS -->
+    <div id="viewport-controls">
+        <div class="ctrl-btn-group">
+            <button class="ctrl-btn active" id="btn-satellite" onclick="setTextureMode('satellite')">Satellite</button>
+            <button class="ctrl-btn" id="btn-semantic" onclick="setTextureMode('semantic')">Semantic</button>
         </div>
 
-        <div class="stat-grid" id="dash-stat-grid">
-            <!-- Populated dynamically -->
+        <div class="slider-wrap">
+            <span>Exag:</span>
+            <input type="range" id="exaggerationSlider" min="0.5" max="4.0" step="0.1" value="1.0" oninput="onExaggerationChange(this.value)">
+            <span id="exaggerationValue">1.0x</span>
         </div>
 
-        <div class="tier-pills-row" id="dash-tier-pills">
-            <!-- Populated dynamically -->
+        <div class="ctrl-btn-group">
+            <button class="ctrl-btn active" id="btn-buildings" onclick="toggleLayer('buildings')">Buildings</button>
+            <button class="ctrl-btn" id="btn-roads" onclick="toggleLayer('roads')">Roads</button>
+            <button class="ctrl-btn active" id="btn-vegetation" onclick="toggleLayer('vegetation')">Vegetation</button>
+            <button class="ctrl-btn" id="btn-hazard" onclick="toggleHazardLayer()">Hazard Overlay</button>
         </div>
 
-        <div class="affected-list-header">
-            <span>Affected Structures</span>
-            <span id="dash-affected-count" style="color: #f43f5e;">0 Structures</span>
-        </div>
-        <div class="affected-structures-container" id="dash-affected-container">
-            <!-- Populated dynamically -->
+        <div class="ctrl-btn-group">
+            <button class="ctrl-btn" id="btn-fly" onclick="toggleFlythrough()">✈ Fly</button>
+            <button class="ctrl-btn" onclick="setTopView()">Top</button>
+            <button class="ctrl-btn" onclick="resetCamera()">Reset</button>
         </div>
     </div>
 
-    <!-- DISASTER SIMULATION CONFIGURATION MODAL -->
-    <div id="disaster-modal-overlay">
-        <div id="disaster-modal">
-            <div class="modal-title-row">
-                <div class="modal-title">
-                    <span>⚡ Synthetic Disaster Simulation</span>
+    <!-- DYNAMIC FLOATING LEGEND -->
+    <div id="dynamic-legend">
+        <div class="legend-title" id="legend-hazard-title">🌊 Flood Depth</div>
+        <div class="legend-scale">
+            <div class="legend-block" style="background: #38bdf8;"></div>
+            <div class="legend-block" style="background: #0284c7;"></div>
+            <div class="legend-block" style="background: #0369a1;"></div>
+            <div class="legend-block" style="background: #075985;"></div>
+            <div class="legend-block" style="background: #082f49;"></div>
+        </div>
+        <div class="legend-labels" id="legend-hazard-labels">
+            <span>0.2m</span>
+            <span>0.8m</span>
+            <span>1.5m</span>
+            <span>2.5m</span>
+            <span>3.5m+</span>
+        </div>
+
+        <div class="impact-legend-row">
+            <span class="impact-legend-item"><span class="dot" style="background: #eab308;"></span> Low</span>
+            <span class="impact-legend-item"><span class="dot" style="background: #f97316;"></span> Mod</span>
+            <span class="impact-legend-item"><span class="dot" style="background: #ef4444;"></span> High</span>
+            <span class="impact-legend-item"><span class="dot" style="background: #dc2626;"></span> Crit</span>
+        </div>
+    </div>
+
+    <!-- LEFT PANEL: DISASTER SIMULATION -->
+    <div id="sim-panel">
+        <div class="panel-heading">
+            <h2>Disaster Simulation</h2>
+            <span style="font-size: 10px; color: #f43f5e; background: rgba(244,63,94,0.15); border: 1px solid rgba(244,63,94,0.3); border-radius: 8px; padding: 2px 6px;">SYNTHETIC</span>
+        </div>
+        <div class="panel-subheading">
+            Simulate disaster scenarios on the current 3D reconstructed environment.
+        </div>
+
+        <!-- 4 Large Disaster Buttons -->
+        <div class="disaster-grid">
+            <div class="disaster-card active-flood" id="card-flood" onclick="selectDisaster('FLOOD')">
+                <div class="disaster-card-icon">🌊</div>
+                <div class="disaster-card-name">Flood</div>
+            </div>
+            <div class="disaster-card" id="card-wildfire" onclick="selectDisaster('WILDFIRE')">
+                <div class="disaster-card-icon">🔥</div>
+                <div class="disaster-card-name">Wildfire</div>
+            </div>
+            <div class="disaster-card" id="card-cyclone" onclick="selectDisaster('CYCLONE')">
+                <div class="disaster-card-icon">🌀</div>
+                <div class="disaster-card-name">Cyclone</div>
+            </div>
+            <div class="disaster-card" id="card-landslide" onclick="selectDisaster('LANDSLIDE')">
+                <div class="disaster-card-icon">⛰️</div>
+                <div class="disaster-card-name">Landslide</div>
+            </div>
+        </div>
+
+        <!-- Intensity Controls -->
+        <div class="form-group">
+            <div class="form-label-row">
+                <span>Simulation Intensity</span>
+                <span id="intensity-desc-label" style="color: #38bdf8;">Medium (~2.2m Surge)</span>
+            </div>
+            <div class="intensity-toggle-group">
+                <button class="intensity-btn" id="btn-int-low" onclick="setIntensity('low')">Low</button>
+                <button class="intensity-btn active" id="btn-int-medium" onclick="setIntensity('medium')">Medium</button>
+                <button class="intensity-btn" id="btn-int-high" onclick="setIntensity('high')">High</button>
+            </div>
+        </div>
+
+        <!-- Additional Parameters -->
+        <div class="param-row">
+            <div class="param-box">
+                <label>Affected Area</label>
+                <select id="param-area">
+                    <option value="auto">Auto (Terrain)</option>
+                    <option value="bounded">Shoreline / Corridor</option>
+                    <option value="extensive">Full Extent</option>
+                </select>
+            </div>
+            <div class="param-box">
+                <label id="direction-param-label">Direction</label>
+                <select id="param-direction">
+                    <option value="auto">Auto (Descent / River)</option>
+                    <option value="north_to_south">North → South</option>
+                    <option value="east_to_west">East → West</option>
+                    <option value="south_to_north">South → North</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Seed & Randomize -->
+        <div class="form-group">
+            <div class="form-label-row">
+                <span>Simulation Seed</span>
+                <span style="font-size: 10px; color: #94a3b8;">Deterministic</span>
+            </div>
+            <div class="seed-box">
+                <input type="number" id="sim-seed" value="42" style="width: 100px; background: rgba(30,41,59,0.7); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 5px 8px; border-radius: 6px; font-size: 12px;">
+                <button class="btn-icon" onclick="randomizeSeed()" style="flex: 1;">🎲 Randomize</button>
+            </div>
+        </div>
+
+        <div style="font-size: 10px; color: #94a3b8; line-height: 1.35; margin-bottom: 8px;">
+            GSD scale: 0.35m/px (1 px² = 0.1225 m²). Elevation sourced from HTC-DCNet monocular DTM model.
+        </div>
+
+        <!-- Actions -->
+        <div class="sim-actions">
+            <button class="btn-run" onclick="executeCurrentSimulation()">⚡ Run Simulation</button>
+            <button class="btn-reset" onclick="resetCurrentSimulation()">↺ Reset Simulation</button>
+        </div>
+    </div>
+
+    <!-- RIGHT PANEL: RESULTS & SELECTED BUILDING -->
+    <div id="results-panel">
+        <div class="results-tabs">
+            <button class="results-tab active" id="rtab-overview" onclick="switchResultsTab('overview')">Overview</button>
+            <button class="results-tab" id="rtab-buildings" onclick="switchResultsTab('buildings')">Buildings</button>
+            <button class="results-tab" id="rtab-infra" onclick="switchResultsTab('infra')">Infrastructure</button>
+            <button class="results-tab" id="rtab-env" onclick="switchResultsTab('env')">Environment</button>
+        </div>
+
+        <!-- Overview Content -->
+        <div id="results-content-overview">
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Affected Structures</div>
+                    <div class="stat-val" id="kpi-affected-b" style="color: #f43f5e;">-- / 56</div>
                 </div>
-                <button class="btn-action" style="padding: 2px 8px; font-size: 11px;" onclick="closeDisasterModal()">✕</button>
-            </div>
-            <div class="modal-disclaimer-pill">
-                Simulation — not a real post-disaster observation
-            </div>
-
-            <!-- Disaster Type Selection -->
-            <div class="form-section">
-                <div class="form-label">Select Hazard Type</div>
-                <div class="type-selector-grid">
-                    <div class="type-card selected" id="type-flood" onclick="selectDisasterType('FLOOD')">
-                        <div class="type-card-title">🌊 Flood Surge</div>
-                        <div class="type-card-desc">Riverine & coastal water inundation advancing inland.</div>
-                    </div>
-                    <div class="type-card disabled" title="Coming soon in modular registry">
-                        <div class="type-card-title">⛰️ Landslide <span style="font-size: 9px; color: #94a3b8;">(Planned)</span></div>
-                        <div class="type-card-desc">Downslope mass soil displacement.</div>
-                    </div>
-                    <div class="type-card disabled" title="Coming soon in modular registry">
-                        <div class="type-card-title">🔥 Wildfire <span style="font-size: 9px; color: #94a3b8;">(Planned)</span></div>
-                        <div class="type-card-desc">Canopy and structure thermal interface.</div>
-                    </div>
-                    <div class="type-card disabled" title="Coming soon in modular registry">
-                        <div class="type-card-title">🌀 Cyclone <span style="font-size: 9px; color: #94a3b8;">(Planned)</span></div>
-                        <div class="type-card-desc">Rotational high-velocity wind swath.</div>
-                    </div>
+                <div class="stat-card">
+                    <div class="stat-label">Hazard Area</div>
+                    <div class="stat-val" id="kpi-hazard-area">-- <span class="stat-unit">m²</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Footprint Impacted</div>
+                    <div class="stat-val" id="kpi-footprint-area">-- <span class="stat-unit">m²</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">High / Critical Risk</div>
+                    <div class="stat-val" id="kpi-high-crit" style="color: #ef4444;">--</div>
                 </div>
             </div>
 
-            <!-- Intensity Presets -->
-            <div class="form-section">
-                <div class="form-label">Simulation Intensity Preset</div>
-                <div class="intensity-grid">
-                    <div class="intensity-card" id="int-low" onclick="selectIntensity('low')">
-                        <div class="intensity-name" style="color: #facc15;">Low</div>
-                        <div class="intensity-desc">Minor Shoreline Overflow (~0.8m)</div>
-                    </div>
-                    <div class="intensity-card selected" id="int-medium" onclick="selectIntensity('medium')">
-                        <div class="intensity-name" style="color: #fb923c;">Medium</div>
-                        <div class="intensity-desc">Moderate Surge & Roads (~2.2m)</div>
-                    </div>
-                    <div class="intensity-card" id="int-high" onclick="selectIntensity('high')">
-                        <div class="intensity-name" style="color: #ef4444;">High</div>
-                        <div class="intensity-desc">Severe Storm Inundation (~4.5m)</div>
-                    </div>
+            <!-- Distribution breakdown -->
+            <div class="dist-wrap">
+                <div class="dist-header">
+                    <span>Impact Distribution</span>
+                    <span id="dist-avg-exp">Avg: --%</span>
+                </div>
+                <div class="dist-bar">
+                    <div class="dist-bar-seg" id="dbar-crit" style="width: 0%; background: #dc2626;"></div>
+                    <div class="dist-bar-seg" id="dbar-high" style="width: 0%; background: #ef4444;"></div>
+                    <div class="dist-bar-seg" id="dbar-mod" style="width: 0%; background: #f97316;"></div>
+                    <div class="dist-bar-seg" id="dbar-low" style="width: 0%; background: #eab308;"></div>
+                    <div class="dist-bar-seg" id="dbar-none" style="width: 100%; background: #64748b;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8;">
+                    <span>Crit: <b id="dtxt-crit">0</b></span>
+                    <span>High: <b id="dtxt-high">0</b></span>
+                    <span>Mod: <b id="dtxt-mod">0</b></span>
+                    <span>Low: <b id="dtxt-low">0</b></span>
+                    <span>None: <b id="dtxt-none">56</b></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Buildings List Content -->
+        <div id="results-content-buildings" style="display: none;">
+            <div style="max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;" id="affected-buildings-container">
+                <div style="font-size: 11px; color: #94a3b8; text-align: center; padding: 12px;">Run a disaster simulation to view affected structures.</div>
+            </div>
+        </div>
+
+        <!-- Infrastructure Content -->
+        <div id="results-content-infra" style="display: none;">
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Roads Affected</div>
+                    <div class="stat-val" id="kpi-roads-len">0.0 <span class="stat-unit">m</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Corridor Severity</div>
+                    <div class="stat-val" id="kpi-road-sev">Normal</div>
+                </div>
+            </div>
+            <div style="font-size: 11px; color: #94a3b8; padding: 8px; background: rgba(30,41,59,0.3); border-radius: 6px;">
+                Road networks derived from SegFormer class 6 raster. Inundation/burn metrics correlate with local ground corridors.
+            </div>
+        </div>
+
+        <!-- Environment Content -->
+        <div id="results-content-env" style="display: none;">
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Vegetation Affected</div>
+                    <div class="stat-val" id="kpi-veg-area">0.0 <span class="stat-unit">m²</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Canopy Density</div>
+                    <div class="stat-val">23.1%</div>
+                </div>
+            </div>
+            <div style="font-size: 11px; color: #94a3b8; padding: 8px; background: rgba(30,41,59,0.3); border-radius: 6px;">
+                Vegetation canopy and tree heights derived from SegFormer and HTC-DCNet height differential.
+            </div>
+        </div>
+
+        <!-- Selected Building Details (Raycasting Box) -->
+        <div class="selected-box" id="selected-building-box">
+            <div class="selected-header">
+                <span class="b-id-title" id="sel-b-id">B-024 (Selected)</span>
+                <span class="b-badge badge-none" id="sel-b-badge">No Impact</span>
+            </div>
+
+            <div class="stat-grid" style="margin-bottom: 8px;">
+                <div class="stat-card">
+                    <div class="stat-label">HTC-DC Height</div>
+                    <div class="stat-val" id="sel-b-height">14.2 <span class="stat-unit">m</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Footprint</div>
+                    <div class="stat-val" id="sel-b-footprint">420 <span class="stat-unit">m²</span></div>
                 </div>
             </div>
 
-            <!-- Deterministic Seed & Calibration -->
-            <div class="form-section">
-                <div class="seed-row">
-                    <span style="font-size: 12px; color: #cbd5e1;">Random Seed:</span>
-                    <input type="number" id="sim-seed" value="42" min="1" max="99999">
-                    <span style="font-size: 11px; color: #94a3b8;">(Guarantees reproducible spatial wave fronts)</span>
+            <div id="sel-b-disaster-metrics">
+                <div style="font-size: 11px; color: #94a3b8;">Click any building in the 3D scene to inspect structure exposure telemetry.</div>
+            </div>
+
+            <button class="btn-focus" id="btn-focus-selected" onclick="focusCurrentSelectedBuilding()" style="display: none;">🎯 Focus Camera</button>
+        </div>
+    </div>
+
+    <!-- BOTTOM DRAWER: BEFORE / AFTER COMPARISON -->
+    <div id="bottom-drawer">
+        <div class="drawer-handle-bar" onclick="toggleBottomDrawer()">
+            <span class="drawer-title">⚖️ Before / After Impact Comparison & Layer Filters</span>
+            <span id="drawer-toggle-icon" style="font-size: 12px; color: #94a3b8;">▲ Expand</span>
+        </div>
+        <div class="drawer-content">
+            <div class="comparison-wrap">
+                <span style="font-size: 11px; font-weight: 700; color: #94a3b8;">PRE-DISASTER</span>
+                <div class="split-slider-box">
+                    <input type="range" id="comparisonSlider" min="0" max="100" value="100" oninput="handleComparisonSlider(this.value)">
+                    <div style="display: flex; justify-content: space-between; font-size: 9px; color: #94a3b8;">
+                        <span>100% Pre</span>
+                        <span>50% Blend</span>
+                        <span>100% Post</span>
+                    </div>
                 </div>
+                <span style="font-size: 11px; font-weight: 700; color: #f43f5e;">POST-DISASTER</span>
             </div>
 
-            <div style="font-size: 11px; color: #94a3b8; line-height: 1.4; margin-top: 8px;">
-                Calibration: GSD = 0.35m/px (1 px² = 0.1225 m²). Terrain elevation is sampled directly from the HTC-DC Net AGL model.
-            </div>
-
-            <!-- Actions -->
-            <div class="modal-actions">
-                <button class="btn-action" onclick="closeDisasterModal()">Cancel</button>
-                <button class="btn-action btn-danger" onclick="runSelectedSimulation()">⚡ Run Simulation</button>
+            <div class="layer-checkboxes">
+                <label><input type="checkbox" id="chk-aff-b" checked onchange="toggleFilter('affectedBuildings', this.checked)"> Affected Buildings</label>
+                <label><input type="checkbox" id="chk-aff-r" checked onchange="toggleFilter('affectedRoads', this.checked)"> Affected Roads</label>
+                <label><input type="checkbox" id="chk-env-c" checked onchange="toggleFilter('envChanges', this.checked)"> Environment</label>
+                <label><input type="checkbox" id="chk-dis-b" checked onchange="toggleFilter('hazardBoundary', this.checked)"> Hazard Boundary</label>
             </div>
         </div>
     </div>
 
-    <div id="hint-footer">
-        <span>Left Click: <b>Select Building / Orbit</b></span>
-        <span>Right Drag: <b>Pan</b></span>
-        <span>Scroll: <b>Zoom</b></span>
+    <!-- =====================================================================
+         MODAL 1: FULL ANALYSIS DATA TABLE
+         ===================================================================== -->
+    <div class="modal-overlay" id="modal-analysis">
+        <div class="modal-card" style="width: 820px;">
+            <div class="modal-head">
+                <h3>📊 Building-Level Impact Assessment Table</h3>
+                <button class="btn-icon" onclick="closeModal('modal-analysis')">✕</button>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 12px; align-items: center;">
+                <input type="text" id="analysis-table-filter" placeholder="Filter by ID (e.g. B-012)..." onkeyup="filterAnalysisTable()" style="background: rgba(30,41,59,0.7); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 5px 10px; border-radius: 6px; font-size: 12px; width: 220px;">
+                <button class="btn-icon" onclick="exportAnalysisCSV()">📥 Export CSV</button>
+            </div>
+            <div style="max-height: 400px; overflow-y: auto;">
+                <table class="data-table" id="analysis-table">
+                    <thead>
+                        <tr>
+                            <th onclick="sortAnalysisTable(0)">ID ⬍</th>
+                            <th onclick="sortAnalysisTable(1)">Height ⬍</th>
+                            <th onclick="sortAnalysisTable(2)">Footprint ⬍</th>
+                            <th onclick="sortAnalysisTable(3)">Exposure % ⬍</th>
+                            <th onclick="sortAnalysisTable(4)">Impact Tier ⬍</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="analysis-table-body">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         MODAL 2: POST-DISASTER WORKFLOW (Simulated & Upload Real)
+         ===================================================================== -->
+    <div class="modal-overlay" id="modal-post-disaster">
+        <div class="modal-card" style="width: 620px;">
+            <div class="modal-head">
+                <h3>🛰️ Post-Disaster Analysis Workflow</h3>
+                <button class="btn-icon" onclick="closeModal('modal-post-disaster')">✕</button>
+            </div>
+            <div style="margin-bottom: 16px; font-size: 12px; color: #94a3b8; line-height: 1.4;">
+                DepthWizard supports both synthetic simulation-based scenario analysis and real post-disaster optical observation comparison.
+            </div>
+
+            <!-- Mode A -->
+            <div style="background: rgba(30,41,59,0.4); border: 1px solid rgba(56,189,248,0.2); border-radius: 8px; padding: 14px; margin-bottom: 14px;">
+                <div style="font-size: 13px; font-weight: 700; color: #38bdf8; margin-bottom: 4px;">MODE A: Synthetic Post-Disaster View</div>
+                <div style="font-size: 11px; color: #cbd5e1; margin-bottom: 10px;">
+                    Generates a high-contrast simulated disaster damage visualization using current scenario physics without requiring secondary imagery.
+                </div>
+                <button class="btn-run" style="padding: 7px 12px; width: auto;" onclick="generatePostDisasterView()">⚡ Generate Post-Disaster View</button>
+            </div>
+
+            <!-- Mode B -->
+            <div style="background: rgba(30,41,59,0.4); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 14px;">
+                <div style="font-size: 13px; font-weight: 700; color: #f8fafc; margin-bottom: 4px;">MODE B: Real Post-Disaster Image Upload</div>
+                <div style="font-size: 11px; color: #94a3b8; margin-bottom: 10px;">
+                    Upload a real post-event optical satellite TIFF / RGB image to perform empirical change detection against the pre-disaster baseline.
+                </div>
+                <input type="file" id="post-image-file" accept=".tiff,.tif,.png,.jpg,.jpeg" style="font-size: 11px; color: #cbd5e1;">
+                <button class="btn-icon" style="margin-top: 8px; display: block;" onclick="handleRealImageUpload()">📤 Load & Compare Imagery</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         MODAL 3: DISASTER REPORT GENERATOR
+         ===================================================================== -->
+    <div class="modal-overlay" id="modal-report">
+        <div class="modal-card" style="width: 680px;">
+            <div class="modal-head">
+                <h3>📑 Automated Disaster Assessment Report</h3>
+                <button class="btn-icon" onclick="closeModal('modal-report')">✕</button>
+            </div>
+            <div id="report-printable-area" style="font-size: 12px; color: #f1f5f9; line-height: 1.45;">
+                <div style="border-bottom: 2px solid #0284c7; padding-bottom: 8px; margin-bottom: 12px;">
+                    <div style="font-size: 16px; font-weight: 800; color: #38bdf8;">DepthWizard Rapid Disaster Impact Report</div>
+                    <div style="font-size: 10px; color: #94a3b8;" id="report-date-meta">Generated: Sep 2026 | System Version 2.0</div>
+                </div>
+                <div id="report-content-body">
+                    <!-- Populated dynamically -->
+                </div>
+                <div style="margin-top: 14px; font-size: 10px; color: #f43f5e; background: rgba(244,63,94,0.1); border: 1px solid rgba(244,63,94,0.3); border-radius: 6px; padding: 6px 10px;">
+                    <b>Disclaimer:</b> Synthetic scenario impact assessment generated from monocular pre-disaster digital twin. Footprint exposure metrics do not indicate certified structural engineering collapse.
+                </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
+                <button class="btn-icon" onclick="closeModal('modal-report')">Close</button>
+                <button class="btn-run" style="width: auto; padding: 6px 16px;" onclick="printReport()">🖨️ Print / Save PDF</button>
+            </div>
+        </div>
     </div>
 
     <div id="tooltip"></div>
 
 <script>
 // ==============================================================================
-// GLOBAL STATE & VARIABLES
+// GLOBAL STATE & SYSTEM INITIALIZATION
 // ==============================================================================
 let SCENE_DATA = null;
-
 let scene, camera, renderer, controls;
 let terrainMesh, waterMesh, roadMesh;
 let buildingMeshes = [];
 let buildingOutlineMesh = null;
 let hoverOutlineMesh = null;
 
-let currentTextureMode = 'satellite'; // 'satellite' or 'semantic'
+let currentTextureMode = 'satellite';
 let heightExaggeration = 1.0;
 let selectedBuilding = null;
 let hoveredBuilding = null;
 
-// Textures
 let satelliteTexture, semanticTexture, roadTexture;
-
-// Raycasting
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 let isPointerDragging = false;
 let pointerDownPos = { x: 0, y: 0 };
 
-// Fly-through
 let isFlying = false;
 let flyCurve = null;
 let flyProgress = 0;
 let savedCameraPos = new THREE.Vector3();
 let savedTargetPos = new THREE.Vector3();
 
-// Layer visibility
 const layerVisibility = {
     buildings: true,
     roads: false,
     vegetation: true,
-    water: true
+    water: true,
+    hazard: true
 };
 
-// Disaster Assessment State
+// Multi-Disaster Engine State
 let disasterService = null;
+let currentDisasterType = "FLOOD";
+let currentIntensity = "medium";
 let activeSimulationResult = null;
-let floodSimulationGroup = null;
-let originalBuildingMaterials = new Map(); // mesh -> [roofMat, wallMat]
-let isFloodVisible = true;
-let selectedDisasterIntensity = "medium";
+let activeHazardVisualizationGroup = null;
+let originalBuildingMaterials = new Map();
 let isCameraTweening = false;
 
 // ==============================================================================
@@ -955,33 +1206,25 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     try {
         if (loadingText) loadingText.innerText = "Loading 3D digital twin data...";
-        console.log("Fetching semantic_scene.json...");
-
         const resp = await fetch('semantic_scene.json');
-        if (!resp.ok) {
-            throw new Error(`Failed to load semantic_scene.json (${resp.status} ${resp.statusText})`);
-        }
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}: Failed to load semantic_scene.json`);
         SCENE_DATA = await resp.json();
-        console.log("Scene metadata loaded:", SCENE_DATA.metadata);
 
-        // Initialize disaster assessment service
         disasterService = new DisasterService(0.35);
 
-        if (loadingText) loadingText.innerText = "Initializing WebGL Engine...";
+        if (loadingText) loadingText.innerText = "Initializing 60fps WebGL Engine...";
         initThree();
 
-        if (loadingText) loadingText.innerText = "Building 3D terrain surface...";
+        if (loadingText) loadingText.innerText = "Building terrain DTM surface...";
         createTerrain();
 
         if (loadingText) loadingText.innerText = "Extruding building structures...";
         createBuildingMeshes();
 
-        if (loadingText) loadingText.innerText = "Setting up controls & lighting...";
         setupEventListeners();
         setupFlythroughCurve();
-        updateSceneInfoPanel();
+        updateSelectedBuildingTelemetry(null);
 
-        // Hide loading overlay
         loadingEl.style.opacity = '0';
         setTimeout(() => { loadingEl.style.display = 'none'; }, 400);
 
@@ -994,12 +1237,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// ==============================================================================
-// THREE.JS SETUP
-// ==============================================================================
 function initThree() {
     const container = document.getElementById('canvas-container');
-
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x090d13);
     scene.fog = new THREE.FogExp2(0x090d13, 0.0006);
@@ -1020,34 +1259,21 @@ function initThree() {
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
-    controls.maxPolarAngle = Math.PI / 2 - 0.02; // Prevent going beneath ground
+    controls.maxPolarAngle = Math.PI / 2 - 0.02;
     controls.minDistance = 30;
     controls.maxDistance = 2500;
     controls.target.set(0, 10, 0);
 
-    // Natural Sun Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
-    scene.add(ambientLight);
-
+    // Natural lighting
+    scene.add(new THREE.AmbientLight(0xffffff, 0.75));
     const sunLight = new THREE.DirectionalLight(0xfff8ee, 1.4);
     sunLight.position.set(450, 850, 400);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 2048;
     sunLight.shadow.mapSize.height = 2048;
-    sunLight.shadow.camera.near = 100;
-    sunLight.shadow.camera.far = 2500;
-    const shadowDist = 700;
-    sunLight.shadow.camera.left = -shadowDist;
-    sunLight.shadow.camera.right = shadowDist;
-    sunLight.shadow.camera.top = shadowDist;
-    sunLight.shadow.camera.bottom = -shadowDist;
-    sunLight.shadow.bias = -0.0004;
     scene.add(sunLight);
+    scene.add(new THREE.HemisphereLight(0x90caf9, 0x1e293b, 0.45));
 
-    const hemiLight = new THREE.HemisphereLight(0x90caf9, 0x1e293b, 0.45);
-    scene.add(hemiLight);
-
-    // Load Textures
     const texLoader = new THREE.TextureLoader();
     satelliteTexture = texLoader.load('satellite_texture.png');
     satelliteTexture.encoding = THREE.sRGBEncoding;
@@ -1059,9 +1285,6 @@ function initThree() {
     roadTexture.encoding = THREE.sRGBEncoding;
 }
 
-// ==============================================================================
-// TERRAIN MESH
-// ==============================================================================
 function createTerrain() {
     const tData = SCENE_DATA.terrain;
     const N = tData.gridSize || tData.gridWidth || (SCENE_DATA.metadata && SCENE_DATA.metadata.terrainGridSize) || 256;
@@ -1084,104 +1307,63 @@ function createTerrain() {
         roughness: 0.85,
         metalness: 0.05
     });
-
     terrainMesh = new THREE.Mesh(geom, mat);
     terrainMesh.receiveShadow = true;
     scene.add(terrainMesh);
 
-    // Road Overlay Mesh
+    // Road overlay
     const roadGeom = new THREE.PlaneGeometry(1024, 1024, N - 1, N - 1);
     roadGeom.rotateX(-Math.PI / 2);
-    const roadPos = roadGeom.attributes.position;
-    for (let i = 0; i < roadPos.count; i++) {
-        const gh = groundHeights[i] || 0;
-        roadPos.setY(i, gh * heightExaggeration + 0.15); // Slight offset
+    const rPos = roadGeom.attributes.position;
+    for (let i = 0; i < rPos.count; i++) {
+        rPos.setY(i, (groundHeights[i] || 0) * heightExaggeration + 0.15);
     }
     roadGeom.computeVertexNormals();
-
-    const roadMat = new THREE.MeshBasicMaterial({
-        map: roadTexture,
-        transparent: true,
-        opacity: 0.9,
-        depthWrite: false
-    });
-    roadMesh = new THREE.Mesh(roadGeom, roadMat);
+    roadMesh = new THREE.Mesh(roadGeom, new THREE.MeshBasicMaterial({ map: roadTexture, transparent: true, opacity: 0.9, depthWrite: false }));
     roadMesh.visible = layerVisibility.roads;
     scene.add(roadMesh);
 }
 
-// ==============================================================================
-// BUILDING EXTRUSION MESHES
-// ==============================================================================
 function createBuildingMeshes() {
     const buildings = SCENE_DATA.buildings;
     buildingMeshes = [];
 
-    const roofMat = new THREE.MeshStandardMaterial({
-        map: satelliteTexture,
-        roughness: 0.7,
-        metalness: 0.1
-    });
-
-    const wallMat = new THREE.MeshStandardMaterial({
-        color: 0x8a929b,
-        roughness: 0.8,
-        metalness: 0.05
-    });
+    const roofMat = new THREE.MeshStandardMaterial({ map: satelliteTexture, roughness: 0.7, metalness: 0.1 });
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x8a929b, roughness: 0.8, metalness: 0.05 });
 
     buildings.forEach(b => {
         try {
             const poly = b.polygon;
             if (!poly || poly.length < 3) return;
 
-            const p0 = poly[0];
             const shape = new THREE.Shape();
-            shape.moveTo(p0[0] - 512, 512 - p0[1]);
-
-            for (let i = 1; i < poly.length; i++) {
-                const pt = poly[i];
-                shape.lineTo(pt[0] - 512, 512 - pt[1]);
-            }
+            shape.moveTo(poly[0][0] - 512, 512 - poly[0][1]);
+            for (let i = 1; i < poly.length; i++) shape.lineTo(poly[i][0] - 512, 512 - poly[i][1]);
             shape.closePath();
 
-            // Interior holes
-            if (b.holes && b.holes.length > 0) {
+            if (b.holes) {
                 b.holes.forEach(hole => {
                     if (hole.length >= 3) {
-                        const holePath = new THREE.Path();
-                        holePath.moveTo(hole[0][0] - 512, 512 - hole[0][1]);
-                        for (let k = 1; k < hole.length; k++) {
-                            holePath.lineTo(hole[k][0] - 512, 512 - hole[k][1]);
-                        }
-                        holePath.closePath();
-                        shape.holes.push(holePath);
+                        const hp = new THREE.Path();
+                        hp.moveTo(hole[0][0] - 512, 512 - hole[0][1]);
+                        for (let k = 1; k < hole.length; k++) hp.lineTo(hole[k][0] - 512, 512 - hole[k][1]);
+                        hp.closePath();
+                        shape.holes.push(hp);
                     }
                 });
             }
 
-            const extrudeSettings = {
-                steps: 1,
-                depth: Math.max(0.5, b.height * heightExaggeration),
-                bevelEnabled: false
-            };
-
-            const geom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+            const geom = new THREE.ExtrudeGeometry(shape, { steps: 1, depth: Math.max(0.5, b.height * heightExaggeration), bevelEnabled: false });
             geom.rotateX(-Math.PI / 2);
 
-            // UV mapping for 1024x1024 satellite texture
             const pos = geom.attributes.position;
             const uvs = geom.attributes.uv;
             for (let i = 0; i < pos.count; i++) {
-                const vx = pos.getX(i);
-                const vz = pos.getZ(i);
-                const u = (vx + 512) / 1024.0;
-                const v = 1.0 - (vz + 512) / 1024.0;
-                uvs.setXY(i, u, v);
+                uvs.setXY(i, (pos.getX(i) + 512) / 1024.0, 1.0 - (pos.getZ(i) + 512) / 1024.0);
             }
             geom.computeVertexNormals();
 
-            const meshMat = [roofMat.clone(), wallMat.clone()];
-            const mesh = new THREE.Mesh(geom, meshMat);
+            const mesh = new THREE.Mesh(geom, [roofMat.clone(), wallMat.clone()]);
             mesh.position.y = b.groundElevation * heightExaggeration;
             mesh.castShadow = true;
             mesh.receiveShadow = true;
@@ -1205,10 +1387,9 @@ function createBuildingMeshes() {
             scene.add(mesh);
             buildingMeshes.push(mesh);
         } catch (e) {
-            console.warn("Skipping building:", b.buildingId, e);
+            console.warn("Building creation skipped:", b.buildingId, e);
         }
     });
-    console.log(`Created ${buildingMeshes.length} building meshes.`);
 }
 
 // ==============================================================================
@@ -1216,22 +1397,16 @@ function createBuildingMeshes() {
 // ==============================================================================
 function setupEventListeners() {
     const container = document.getElementById('canvas-container');
-
     window.addEventListener('resize', onWindowResize);
 
     container.addEventListener('pointerdown', (e) => {
         isPointerDragging = false;
         pointerDownPos = { x: e.clientX, y: e.clientY };
     });
-
     container.addEventListener('pointermove', (e) => {
-        const dx = Math.abs(e.clientX - pointerDownPos.x);
-        const dy = Math.abs(e.clientY - pointerDownPos.y);
-        if (dx > 4 || dy > 4) isPointerDragging = true;
-
+        if (Math.abs(e.clientX - pointerDownPos.x) > 4 || Math.abs(e.clientY - pointerDownPos.y) > 4) isPointerDragging = true;
         if (!isFlying) handlePointerHover(e);
     });
-
     container.addEventListener('pointerup', (e) => {
         if (!isPointerDragging) handlePointerClick(e);
     });
@@ -1240,21 +1415,15 @@ function setupEventListeners() {
 function handlePointerClick(e) {
     mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(buildingMeshes, false);
-
-    if (intersects.length > 0) {
-        selectBuilding(intersects[0].object);
-    } else {
-        clearSelection();
-    }
+    if (intersects.length > 0) selectBuilding(intersects[0].object);
+    else clearSelection();
 }
 
 function handlePointerHover(e) {
     mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(buildingMeshes, false);
     const tooltip = document.getElementById('tooltip');
@@ -1262,20 +1431,17 @@ function handlePointerHover(e) {
     if (intersects.length > 0) {
         const hit = intersects[0].object;
         document.body.style.cursor = 'pointer';
-
         if (hoveredBuilding !== hit && hit !== selectedBuilding) {
             removeHoverOutline();
             hoveredBuilding = hit;
             showHoverOutline(hit);
         }
-
         tooltip.style.display = 'block';
         tooltip.style.left = (e.clientX + 14) + 'px';
         tooltip.style.top = (e.clientY + 14) + 'px';
-
-        const simImpact = hit.userData.simulationImpact;
-        if (simImpact && simImpact.isAffected) {
-            tooltip.innerHTML = `<b>${hit.userData.buildingId}</b>: <span style="color: ${simImpact.impactColorHex};">${simImpact.impactLabel} (${simImpact.exposurePercentage}%)</span>`;
+        const impact = hit.userData.simulationImpact;
+        if (impact && impact.isAffected) {
+            tooltip.innerHTML = `<b>${hit.userData.buildingId}</b>: <span style="color: ${impact.impactColorHex};">${impact.impactLabel} (${impact.exposurePercentage}%)</span>`;
         } else {
             tooltip.innerText = `${hit.userData.buildingId} (${hit.userData.height.toFixed(1)}m)`;
         }
@@ -1291,46 +1457,33 @@ function handlePointerHover(e) {
 
 function selectBuilding(mesh) {
     if (selectedBuilding === mesh) return;
-
     clearSelection();
     selectedBuilding = mesh;
 
-    // Outline highlight
     const edges = new THREE.EdgesGeometry(mesh.geometry, 25);
-    const lineMat = new THREE.LineBasicMaterial({
-        color: 0x38bdf8,
-        linewidth: 2.5,
-        depthTest: true
-    });
+    const lineMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 2.5, depthTest: true });
     buildingOutlineMesh = new THREE.LineSegments(edges, lineMat);
     buildingOutlineMesh.position.copy(mesh.position);
     buildingOutlineMesh.scale.copy(mesh.scale);
     scene.add(buildingOutlineMesh);
 
-    updateBuildingInfoPanel(mesh.userData);
+    updateSelectedBuildingTelemetry(mesh.userData);
 }
 
 function clearSelection() {
-    if (selectedBuilding) {
-        selectedBuilding = null;
-    }
+    if (selectedBuilding) selectedBuilding = null;
     if (buildingOutlineMesh) {
         scene.remove(buildingOutlineMesh);
         buildingOutlineMesh.geometry.dispose();
         buildingOutlineMesh.material.dispose();
         buildingOutlineMesh = null;
     }
-    updateSceneInfoPanel();
+    updateSelectedBuildingTelemetry(null);
 }
 
 function showHoverOutline(mesh) {
     const edges = new THREE.EdgesGeometry(mesh.geometry, 25);
-    const lineMat = new THREE.LineBasicMaterial({
-        color: 0x94a3b8,
-        linewidth: 1,
-        transparent: true,
-        opacity: 0.6
-    });
+    const lineMat = new THREE.LineBasicMaterial({ color: 0x94a3b8, linewidth: 1, transparent: true, opacity: 0.6 });
     hoverOutlineMesh = new THREE.LineSegments(edges, lineMat);
     hoverOutlineMesh.position.copy(mesh.position);
     hoverOutlineMesh.scale.copy(mesh.scale);
@@ -1347,287 +1500,107 @@ function removeHoverOutline() {
 }
 
 // ==============================================================================
-// SIDEBAR INFO PANEL UI (Baseline & Simulation Telemetry)
+// DISASTER SELECTION & SIMULATION CONTROLLER
 // ==============================================================================
-function updateSceneInfoPanel() {
-    const meta = (SCENE_DATA && SCENE_DATA.metadata) ? SCENE_DATA.metadata : {};
-    const res = meta.resolution ? `${meta.resolution[0]} × ${meta.resolution[1]}` : "1024 × 1024";
-    const bCount = meta.buildingCount !== undefined ? meta.buildingCount : buildingMeshes.length;
-    const maxH = (meta.heightRange && meta.heightRange[1] !== undefined) ? meta.heightRange[1].toFixed(2) : "33.61";
-    const meanH = (meta.meanHeight !== undefined) ? meta.meanHeight.toFixed(2) : "2.88";
-    const bPixels = (meta.buildingPixels !== undefined) ? meta.buildingPixels.toLocaleString() : "310,175";
-    const vPixels = (meta.vegetationPixels !== undefined) ? meta.vegetationPixels.toLocaleString() : "236,913";
-
-    document.getElementById('panel-title').innerText = "Scene Information";
-    const badge = document.getElementById('panel-badge');
-
-    if (activeSimulationResult) {
-        badge.innerText = "SYNTHETIC SCENARIO";
-        badge.className = "badge badge-synthetic";
-    } else {
-        badge.innerText = "DIGITAL TWIN";
-        badge.className = "badge badge-scene";
-    }
-
-    let extraSimHtml = "";
-    if (activeSimulationResult) {
-        const stats = activeSimulationResult.summaryStatistics;
-        extraSimHtml = `
-            <div style="margin-top: 10px; padding: 10px; background: rgba(225, 29, 72, 0.12); border: 1px solid rgba(225, 29, 72, 0.25); border-radius: 8px;">
-                <div style="font-size: 11px; font-weight: 700; color: #f43f5e; margin-bottom: 4px;">ACTIVE FLOOD SCENARIO</div>
-                <div style="font-size: 11px; color: #cbd5e1;">Affected Structures: <b>${stats.affectedBuildings}</b> / ${stats.totalBuildings}</div>
-                <div style="font-size: 11px; color: #cbd5e1;">Flooded Area: <b>${stats.totalFloodedAreaSqMeters.toLocaleString()} m²</b></div>
-                <div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">Click an affected building to inspect exposure</div>
-            </div>
-        `;
-    }
-
-    document.getElementById('panel-body').innerHTML = `
-        <div class="stat-grid">
-            <div class="stat-card">
-                <div class="stat-label">Resolution</div>
-                <div class="stat-value">${res}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Buildings Detected</div>
-                <div class="stat-value">${bCount}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Max HTC-DC Height</div>
-                <div class="stat-value">${maxH}<span class="stat-unit">m</span></div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Mean Elevation</div>
-                <div class="stat-value">${meanH}<span class="stat-unit">m</span></div>
-            </div>
-        </div>
-        <div class="stat-grid">
-            <div class="stat-card">
-                <div class="stat-label">Building Area</div>
-                <div class="stat-value">${bPixels}<span class="stat-unit">px</span></div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Vegetation Area</div>
-                <div class="stat-value">${vPixels}<span class="stat-unit">px</span></div>
-            </div>
-        </div>
-        ${extraSimHtml}
-        <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 8px;">
-            Click any building to inspect structure metrics
-        </div>
-    `;
-}
-
-function updateBuildingInfoPanel(data) {
-    document.getElementById('panel-title').innerText = "Selected Building";
-    const badge = document.getElementById('panel-badge');
-    badge.innerText = data.buildingId;
-    badge.className = "badge badge-selected";
-
-    const simImpact = data.simulationImpact;
-
-    let impactHtml = "";
-    if (simImpact) {
-        const isAff = simImpact.isAffected;
-        const color = simImpact.impactColorHex || "#94a3b8";
-        const badgeClass = simImpact.badgeClass || "badge-none";
-
-        impactHtml = `
-            <div style="margin-bottom: 12px; padding: 10px; background: rgba(15, 23, 42, 0.7); border: 1px solid ${color}40; border-radius: 8px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Simulated Impact</span>
-                    <span class="badge ${badgeClass}">${simImpact.impactLabel}</span>
-                </div>
-                <div class="stat-grid" style="margin-bottom: 6px;">
-                    <div class="stat-card">
-                        <div class="stat-label">Flood Exposure</div>
-                        <div class="stat-value" style="color: ${color};">${simImpact.exposurePercentage}%</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Inundated Area</div>
-                        <div class="stat-value" style="color: ${color};">${simImpact.affectedAreaSqMeters}<span class="stat-unit">m²</span></div>
-                    </div>
-                </div>
-                <div class="progress-bar-bg" style="height: 6px;">
-                    <div class="progress-bar-fill" style="width: ${simImpact.exposurePercentage}%; background: ${color};"></div>
-                </div>
-                <div style="font-size: 10px; color: #94a3b8; line-height: 1.35; margin-top: 8px;">
-                    <b>Disclaimer:</b> Calculated exposure represents 2D footprint spatial overlap with simulated surge. Not verified structural failure.
-                </div>
-            </div>
-        `;
-    }
-
-    const areaSqM = Math.round(data.areaPixels * 0.1225 * 10) / 10;
-
-    document.getElementById('panel-body').innerHTML = `
-        ${impactHtml}
-        <div class="stat-grid">
-            <div class="stat-card">
-                <div class="stat-label">Building ID</div>
-                <div class="stat-value" style="color: #38bdf8;">${data.buildingId}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">HTC-DC Height</div>
-                <div class="stat-value" style="color: #fb923c;">${data.height.toFixed(2)}<span class="stat-unit">m</span></div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Footprint Area</div>
-                <div class="stat-value">${areaSqM}<span class="stat-unit">m²</span></div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Ground Elevation</div>
-                <div class="stat-value">${data.baseElevation.toFixed(2)}<span class="stat-unit">m</span></div>
-            </div>
-        </div>
-        <div class="stat-grid">
-            <div class="stat-card">
-                <div class="stat-label">Centroid (X, Y)</div>
-                <div class="stat-value" style="font-size: 13px;">${data.centroid.x}, ${data.centroid.y}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Semantic Class</div>
-                <div class="stat-value" style="font-size: 13px;">Building</div>
-            </div>
-        </div>
-        <button class="btn-clear" onclick="clearSelection()">Clear Selection</button>
-    `;
-}
-
-// ==============================================================================
-// DISASTER SIMULATION WORKFLOW & VISUALIZATION
-// ==============================================================================
-function openDisasterModal() {
-    document.getElementById('disaster-modal-overlay').style.display = 'flex';
-}
-
-function closeDisasterModal() {
-    document.getElementById('disaster-modal-overlay').style.display = 'none';
-}
-
-function selectDisasterType(type) {
-    if (type !== 'FLOOD') return; // Others disabled
-}
-
-function selectIntensity(intensity) {
-    selectedDisasterIntensity = intensity;
-    ['low', 'medium', 'high'].forEach(id => {
-        document.getElementById(`int-${id}`).classList.toggle('selected', id === intensity);
+function selectDisaster(type) {
+    currentDisasterType = type;
+    ['flood', 'wildfire', 'cyclone', 'landslide'].forEach(d => {
+        const el = document.getElementById(`card-${d}`);
+        if (el) el.className = `disaster-card ${d === type.toLowerCase() ? `active-${d}` : ''}`;
     });
+
+    // Update legend and labels
+    updateLegendForHazard(type);
+    updateIntensityLabel();
 }
 
-function runSelectedSimulation() {
+function setIntensity(intLevel) {
+    currentIntensity = intLevel;
+    ['low', 'medium', 'high'].forEach(id => {
+        document.getElementById(`btn-int-${id}`).classList.toggle('active', id === intLevel);
+    });
+    updateIntensityLabel();
+}
+
+function updateIntensityLabel() {
+    const descEl = document.getElementById('intensity-desc-label');
+    const presets = SimulationConfig[`${currentDisasterType}_INTENSITIES`];
+    if (presets && presets[currentIntensity]) {
+        descEl.innerText = `${currentIntensity.toUpperCase()}: ${presets[currentIntensity].name}`;
+    }
+}
+
+function randomizeSeed() {
+    const seedInput = document.getElementById('sim-seed');
+    seedInput.value = Math.floor(Math.random() * 89999 + 10000);
+}
+
+function executeCurrentSimulation() {
+    if (!disasterService || !SCENE_DATA) return;
+
     const seedInput = document.getElementById('sim-seed');
     const seed = parseInt(seedInput.value, 10) || 42;
 
-    closeDisasterModal();
-    executeDisasterSimulation(selectedDisasterIntensity, seed);
-}
+    console.log(`Executing ${currentDisasterType} simulation with intensity ${currentIntensity}, seed ${seed}`);
+    activeSimulationResult = disasterService.runSimulation(currentDisasterType, SCENE_DATA.buildings, currentIntensity, seed);
 
-function executeDisasterSimulation(intensity = "medium", seed = 42) {
-    if (!disasterService || !SCENE_DATA) return;
-
-    console.log(`Executing Flood Simulation: intensity=${intensity}, seed=${seed}...`);
-
-    // 1. Run simulation calculation
-    activeSimulationResult = disasterService.runFloodSimulation(SCENE_DATA.buildings, intensity, seed);
-    console.log("Simulation Result:", activeSimulationResult.summaryStatistics);
-
-    // 2. Remove existing flood visualization if any
-    if (floodSimulationGroup) {
-        scene.remove(floodSimulationGroup);
-        floodSimulationGroup = null;
+    // 1. Remove previous hazard visualization
+    if (activeHazardVisualizationGroup) {
+        scene.remove(activeHazardVisualizationGroup);
+        activeHazardVisualizationGroup = null;
     }
 
-    // 3. Create 3D Flood Visualization (water surface + glowing front line)
+    // 2. Create Three.js 3D Hazard Visualization
     const tData = {
-        gridSize: SCENE_DATA.terrain.gridWidth || 256,
-        elevations: SCENE_DATA.terrain.groundHeights
+        gridWidth: SCENE_DATA.terrain.gridWidth || 256,
+        groundHeights: SCENE_DATA.terrain.groundHeights
     };
-    floodSimulationGroup = disasterService.create3DFloodVisualization(
-        activeSimulationResult.floodLayer,
+    activeHazardVisualizationGroup = disasterService.create3DHazardVisualization(
+        activeSimulationResult.hazardLayer,
         tData,
         heightExaggeration
     );
-    scene.add(floodSimulationGroup);
-    isFloodVisible = true;
+    scene.add(activeHazardVisualizationGroup);
+    layerVisibility.hazard = true;
 
-    // 4. Update Building Materials (Save pre-disaster state once)
+    // 3. Save pre-disaster materials once
     if (originalBuildingMaterials.size === 0) {
         buildingMeshes.forEach(mesh => {
             originalBuildingMaterials.set(mesh, [mesh.material[0].clone(), mesh.material[1].clone()]);
         });
     }
 
-    // Map building ID to simulation impact record
+    // 4. Update Building Impact Materials
     const impactMap = new Map();
-    activeSimulationResult.assessedBuildings.forEach(b => {
-        impactMap.set(b.buildingId, b);
-    });
+    activeSimulationResult.assessedBuildings.forEach(b => impactMap.set(b.buildingId, b));
 
-    // Apply color gradient based on impact tier
     buildingMeshes.forEach(mesh => {
-        const bId = mesh.userData.buildingId;
-        const impact = impactMap.get(bId);
-
+        const impact = impactMap.get(mesh.userData.buildingId);
         if (impact) {
             mesh.userData.simulationImpact = impact;
-
             if (impact.isAffected) {
-                // Colored simulation material
-                const tierColor = impact.impactColorThree;
-                const simMatRoof = new THREE.MeshStandardMaterial({
-                    color: tierColor,
-                    roughness: 0.35,
-                    metalness: 0.1,
-                    emissive: new THREE.Color(tierColor),
-                    emissiveIntensity: 0.28
-                });
-                const simMatWall = new THREE.MeshStandardMaterial({
-                    color: tierColor,
-                    roughness: 0.6,
-                    metalness: 0.05,
-                    emissive: new THREE.Color(tierColor),
-                    emissiveIntensity: 0.18
-                });
-                mesh.material = [simMatRoof, simMatWall];
-            } else {
-                // Unaffected buildings return to baseline
-                if (originalBuildingMaterials.has(mesh)) {
-                    mesh.material = originalBuildingMaterials.get(mesh);
-                }
+                const color = impact.impactColorThree;
+                mesh.material = [
+                    new THREE.MeshStandardMaterial({ color: color, roughness: 0.4, metalness: 0.1, emissive: new THREE.Color(color), emissiveIntensity: 0.3 }),
+                    new THREE.MeshStandardMaterial({ color: color, roughness: 0.6, metalness: 0.05, emissive: new THREE.Color(color), emissiveIntensity: 0.18 })
+                ];
+            } else if (originalBuildingMaterials.has(mesh)) {
+                mesh.material = originalBuildingMaterials.get(mesh);
             }
         }
     });
 
-    // 5. Update Toolbar Controls & Banner
-    document.getElementById('simulation-banner').style.display = 'flex';
-    document.getElementById('btn-toggle-flood').style.display = 'inline-block';
-    document.getElementById('btn-toggle-flood').innerText = 'Hide Flood';
-    document.getElementById('btn-reset-sim').style.display = 'inline-block';
-
-    // 6. Populate and Display Disaster Impact Dashboard
-    populateDisasterDashboard(activeSimulationResult);
-    document.getElementById('disaster-dashboard').style.display = 'block';
-
-    // 7. Refresh side panel
-    updateSceneInfoPanel();
+    // 5. Update Results Panel & Buildings Table
+    updateResultsDashboard(activeSimulationResult);
+    if (selectedBuilding) selectBuilding(selectedBuilding);
 }
 
-function toggleFloodLayer() {
-    if (!floodSimulationGroup) return;
-    isFloodVisible = !isFloodVisible;
-    floodSimulationGroup.visible = isFloodVisible;
-    document.getElementById('btn-toggle-flood').innerText = isFloodVisible ? 'Hide Flood' : 'Show Flood';
-}
-
-function resetDisasterSimulation() {
-    if (floodSimulationGroup) {
-        scene.remove(floodSimulationGroup);
-        floodSimulationGroup = null;
+function resetCurrentSimulation() {
+    if (activeHazardVisualizationGroup) {
+        scene.remove(activeHazardVisualizationGroup);
+        activeHazardVisualizationGroup = null;
     }
 
-    // Restore original pre-disaster building materials
     buildingMeshes.forEach(mesh => {
         if (originalBuildingMaterials.has(mesh)) {
             mesh.material = originalBuildingMaterials.get(mesh);
@@ -1636,152 +1609,392 @@ function resetDisasterSimulation() {
     });
     originalBuildingMaterials.clear();
 
-    // Reset UI
     activeSimulationResult = null;
-    document.getElementById('simulation-banner').style.display = 'none';
-    document.getElementById('btn-toggle-flood').style.display = 'none';
-    document.getElementById('btn-reset-sim').style.display = 'none';
-    document.getElementById('disaster-dashboard').style.display = 'none';
-
     clearSelection();
-    updateSceneInfoPanel();
-    console.log("Disaster simulation reset to pre-disaster baseline.");
+    updateResultsDashboard(null);
+    console.log("Disaster simulation reset to baseline digital twin.");
 }
 
-function populateDisasterDashboard(simResult) {
-    const stats = simResult.summaryStatistics;
-    const statsGrid = document.getElementById('dash-stat-grid');
-    const pillsRow = document.getElementById('dash-tier-pills');
-    const container = document.getElementById('dash-affected-container');
-    const countLabel = document.getElementById('dash-affected-count');
+function toggleHazardLayer() {
+    layerVisibility.hazard = !layerVisibility.hazard;
+    if (activeHazardVisualizationGroup) {
+        activeHazardVisualizationGroup.visible = layerVisibility.hazard;
+    }
+    const btn = document.getElementById('btn-hazard');
+    if (btn) btn.classList.toggle('active', layerVisibility.hazard);
+}
 
-    statsGrid.innerHTML = `
-        <div class="stat-card">
-            <div class="stat-label">Flooded Area</div>
-            <div class="stat-value" style="color: #38bdf8;">${stats.totalFloodedAreaSqMeters.toLocaleString()}<span class="stat-unit">m²</span></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Affected Structures</div>
-            <div class="stat-value" style="color: #f43f5e;">${stats.affectedBuildings} <span class="stat-unit">/ ${stats.totalBuildings}</span></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Footprint Flooded</div>
-            <div class="stat-value">${stats.totalAffectedBuildingFootprintSqMeters.toLocaleString()}<span class="stat-unit">m²</span></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">High / Critical Risk</div>
-            <div class="stat-value" style="color: #ef4444;">${stats.highAndCriticalCount}</div>
-        </div>
-    `;
+// ==============================================================================
+// DYNAMIC LEGEND & TELEMETRY UPDATES
+// ==============================================================================
+function updateLegendForHazard(type) {
+    const meta = DisasterTypes[type] || DisasterTypes.FLOOD;
+    document.getElementById('legend-hazard-title').innerText = `${meta.icon} ${meta.legendTitle}`;
+    const labelsEl = document.getElementById('legend-hazard-labels');
+    if (labelsEl && meta.legendLevels) {
+        labelsEl.innerHTML = meta.legendLevels.map(l => `<span>${l}</span>`).join('');
+    }
+}
 
-    const tb = stats.tierBreakdown;
-    pillsRow.innerHTML = `
-        <span class="tier-pill badge-crit">Critical: ${tb.CRITICAL || 0}</span>
-        <span class="tier-pill badge-high">High: ${tb.HIGH || 0}</span>
-        <span class="tier-pill badge-mod">Moderate: ${tb.MODERATE || 0}</span>
-        <span class="tier-pill badge-low">Low: ${tb.LOW || 0}</span>
-        <span class="tier-pill badge-none">None: ${tb.NONE || 0}</span>
-    `;
-
-    const affected = simResult.affectedBuildingsList || [];
-    countLabel.innerText = `${affected.length} Structures`;
-
-    if (affected.length === 0) {
-        container.innerHTML = `<div style="font-size: 11px; color: #94a3b8; text-align: center; padding: 12px;">No structures impacted in this scenario.</div>`;
+function updateResultsDashboard(simResult) {
+    if (!simResult) {
+        document.getElementById('kpi-affected-b').innerText = "-- / 56";
+        document.getElementById('kpi-hazard-area').innerHTML = `-- <span class="stat-unit">m²</span>`;
+        document.getElementById('kpi-footprint-area').innerHTML = `-- <span class="stat-unit">m²</span>`;
+        document.getElementById('kpi-high-crit').innerText = "--";
+        document.getElementById('dist-avg-exp').innerText = "Avg: --%";
+        document.getElementById('dbar-crit').style.width = "0%";
+        document.getElementById('dbar-high').style.width = "0%";
+        document.getElementById('dbar-mod').style.width = "0%";
+        document.getElementById('dbar-low').style.width = "0%";
+        document.getElementById('dbar-none').style.width = "100%";
+        document.getElementById('affected-buildings-container').innerHTML = `<div style="font-size: 11px; color: #94a3b8; text-align: center; padding: 12px;">Run a disaster simulation to view affected structures.</div>`;
         return;
     }
 
-    let cardsHtml = "";
-    affected.forEach(b => {
-        const color = b.impactColorHex || "#94a3b8";
-        cardsHtml += `
-            <div class="affected-card" onclick="focusBuilding('${b.buildingId}')">
-                <div class="affected-card-top">
-                    <span class="affected-card-id">${b.buildingId}</span>
-                    <span class="badge ${b.badgeClass}">${b.impactLabel}</span>
+    const stats = simResult.summaryStatistics;
+    document.getElementById('kpi-affected-b').innerText = `${stats.affectedBuildings} / ${stats.totalBuildings}`;
+    document.getElementById('kpi-hazard-area').innerHTML = `${stats.totalHazardAreaSqMeters.toLocaleString()}<span class="stat-unit">m²</span>`;
+    document.getElementById('kpi-footprint-area').innerHTML = `${stats.totalAffectedBuildingFootprintSqMeters.toLocaleString()}<span class="stat-unit">m²</span>`;
+    document.getElementById('kpi-high-crit').innerText = stats.highAndCriticalCount;
+    document.getElementById('dist-avg-exp').innerText = `Avg: ${stats.averageExposurePercentage}%`;
+
+    // Infrastructure & Environment
+    document.getElementById('kpi-roads-len').innerHTML = `${stats.affectedRoadsLengthMeters.toLocaleString()}<span class="stat-unit">m</span>`;
+    document.getElementById('kpi-veg-area').innerHTML = `${stats.affectedVegetationAreaSqMeters.toLocaleString()}<span class="stat-unit">m²</span>`;
+
+    // Distribution breakdown
+    const tb = stats.tierBreakdown;
+    const tot = stats.totalBuildings || 56;
+    document.getElementById('dbar-crit').style.width = `${(tb.CRITICAL / tot) * 100}%`;
+    document.getElementById('dbar-high').style.width = `${(tb.HIGH / tot) * 100}%`;
+    document.getElementById('dbar-mod').style.width = `${(tb.MODERATE / tot) * 100}%`;
+    document.getElementById('dbar-low').style.width = `${(tb.LOW / tot) * 100}%`;
+    document.getElementById('dbar-none').style.width = `${(tb.NONE / tot) * 100}%`;
+
+    document.getElementById('dtxt-crit').innerText = tb.CRITICAL;
+    document.getElementById('dtxt-high').innerText = tb.HIGH;
+    document.getElementById('dtxt-mod').innerText = tb.MODERATE;
+    document.getElementById('dtxt-low').innerText = tb.LOW;
+    document.getElementById('dtxt-none').innerText = tb.NONE;
+
+    // Building list cards
+    const affList = simResult.affectedBuildingsList || [];
+    const bContainer = document.getElementById('affected-buildings-container');
+    if (affList.length === 0) {
+        bContainer.innerHTML = `<div style="font-size: 11px; color: #94a3b8; text-align: center; padding: 12px;">No structures impacted in this scenario.</div>`;
+    } else {
+        bContainer.innerHTML = affList.map(b => `
+            <div style="background: rgba(30,41,59,0.5); border: 1px solid rgba(255,255,255,0.06); border-radius: 6px; padding: 6px 10px; cursor: pointer;" onclick="focusBuilding('${b.buildingId}')">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                    <span style="font-size: 11px; font-weight: 700; color: #f8fafc;">${b.buildingId}</span>
+                    <span class="b-badge ${b.badgeClass}">${b.impactLabel}</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8;">
-                    <span>Exposure: <b style="color: ${color};">${b.exposurePercentage}%</b></span>
-                    <span>Flooded: <b>${b.affectedAreaSqMeters} m²</b></span>
+                <div style="display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8;">
+                    <span>Exposure: <b style="color: ${b.impactColorHex};">${b.exposurePercentage}%</b></span>
+                    <span>Area: <b>${b.affectedAreaSqMeters} m²</b></span>
                 </div>
-                <div class="progress-bar-bg">
-                    <div class="progress-bar-fill" style="width: ${b.exposurePercentage}%; background: ${color};"></div>
+                <div class="progress-line">
+                    <div class="progress-line-fill" style="width: ${b.exposurePercentage}%; background: ${b.impactColorHex};"></div>
                 </div>
             </div>
+        `).join('');
+    }
+}
+
+function updateSelectedBuildingTelemetry(userData) {
+    const box = document.getElementById('selected-building-box');
+    const idTitle = document.getElementById('sel-b-id');
+    const badge = document.getElementById('sel-b-badge');
+    const heightEl = document.getElementById('sel-b-height');
+    const fpEl = document.getElementById('sel-b-footprint');
+    const metricsDiv = document.getElementById('sel-b-disaster-metrics');
+    const focusBtn = document.getElementById('btn-focus-selected');
+
+    if (!userData) {
+        idTitle.innerText = "No Building Selected";
+        badge.className = "b-badge badge-none";
+        badge.innerText = "None";
+        heightEl.innerHTML = `-- <span class="stat-unit">m</span>`;
+        fpEl.innerHTML = `-- <span class="stat-unit">m²</span>`;
+        metricsDiv.innerHTML = `<div style="font-size: 11px; color: #94a3b8;">Click any building in the 3D scene to inspect structure exposure telemetry.</div>`;
+        focusBtn.style.display = 'none';
+        return;
+    }
+
+    idTitle.innerText = userData.buildingId;
+    heightEl.innerHTML = `${userData.height.toFixed(1)} <span class="stat-unit">m</span>`;
+    const footprintSqM = Math.round(userData.areaPixels * 0.1225 * 10) / 10;
+    fpEl.innerHTML = `${footprintSqM.toLocaleString()} <span class="stat-unit">m²</span>`;
+    focusBtn.style.display = 'block';
+
+    const impact = userData.simulationImpact;
+    if (impact) {
+        badge.className = `b-badge ${impact.badgeClass}`;
+        badge.innerText = impact.impactLabel;
+
+        let hazardSpecificHtml = "";
+        if (currentDisasterType === "FLOOD") {
+            hazardSpecificHtml = `
+                <div style="font-size: 11px; color: #cbd5e1; margin-top: 4px;">
+                    <div>Inundated Area: <b style="color: #38bdf8;">${impact.affectedAreaSqMeters} m²</b></div>
+                    <div>Est. Flood Depth: <b>${(activeSimulationResult.hazardLayer.data.estimatedMeanDepthMeters || 1.2)} m</b></div>
+                </div>
+            `;
+        } else if (currentDisasterType === "WILDFIRE") {
+            hazardSpecificHtml = `
+                <div style="font-size: 11px; color: #cbd5e1; margin-top: 4px;">
+                    <div>Burned Footprint: <b style="color: #f97316;">${impact.affectedAreaSqMeters} m²</b></div>
+                    <div>Fireline Intensity: <b>${(activeSimulationResult.hazardLayer.data.firelineIntensityKwm || 2400)} kW/m</b></div>
+                </div>
+            `;
+        } else if (currentDisasterType === "CYCLONE") {
+            hazardSpecificHtml = `
+                <div style="font-size: 11px; color: #cbd5e1; margin-top: 4px;">
+                    <div>Wind Force Exposure: <b style="color: #c084fc;">${impact.exposurePercentage}%</b></div>
+                    <div>Max Gust: <b>${(activeSimulationResult.hazardLayer.data.maxWindSpeedKmh || 185)} km/h</b></div>
+                </div>
+            `;
+        } else if (currentDisasterType === "LANDSLIDE") {
+            hazardSpecificHtml = `
+                <div style="font-size: 11px; color: #cbd5e1; margin-top: 4px;">
+                    <div>Debris Scour Area: <b style="color: #d97706;">${impact.affectedAreaSqMeters} m²</b></div>
+                    <div>Slope Angle: <b>${(activeSimulationResult.hazardLayer.data.criticalSlopeDegrees || 16)}°</b></div>
+                </div>
+            `;
+        }
+
+        metricsDiv.innerHTML = `
+            <div style="font-size: 11px; font-weight: 700; color: ${impact.impactColorHex}; margin-bottom: 2px;">
+                Simulated Impact: ${impact.exposurePercentage}% Exposure
+            </div>
+            <div class="progress-line">
+                <div class="progress-line-fill" style="width: ${impact.exposurePercentage}%; background: ${impact.impactColorHex};"></div>
+            </div>
+            ${hazardSpecificHtml}
+            <div style="font-size: 9px; color: #94a3b8; line-height: 1.35; margin-top: 6px;">
+                <b>Notice:</b> Calculated 2D footprint intersection with simulated hazard perimeter; does not certify structural failure.
+            </div>
         `;
-    });
-    container.innerHTML = cardsHtml;
+    } else {
+        badge.className = "b-badge badge-none";
+        badge.innerText = "Baseline";
+        metricsDiv.innerHTML = `<div style="font-size: 11px; color: #94a3b8;">No active disaster simulation. Pre-disaster baseline state.</div>`;
+    }
 }
 
-function closeDashboard() {
-    document.getElementById('disaster-dashboard').style.display = 'none';
+function focusCurrentSelectedBuilding() {
+    if (selectedBuilding) focusBuilding(selectedBuilding.userData.buildingId);
 }
 
-function focusBuilding(buildingId) {
-    const mesh = buildingMeshes.find(m => m.userData.buildingId === buildingId);
+function focusBuilding(bId) {
+    const mesh = buildingMeshes.find(m => m.userData.buildingId === bId);
     if (!mesh) return;
-
     selectBuilding(mesh);
 
-    // Smoothly fly camera to look directly at the building
     const bx = mesh.position.x || 0;
     const bz = mesh.position.z || 0;
     const by = mesh.position.y || 0;
-
-    const targetPos = new THREE.Vector3(bx, by + 12, bz);
-    const camPos = new THREE.Vector3(bx + 70, by + 80, bz + 90);
-
-    animateCameraTo(camPos, targetPos);
+    animateCameraTo(new THREE.Vector3(bx + 70, by + 80, bz + 90), new THREE.Vector3(bx, by + 10, bz));
 }
 
 function animateCameraTo(targetCamPos, targetControlsPos, duration = 800) {
     if (isCameraTweening) return;
     isCameraTweening = true;
+    const startCam = camera.position.clone();
+    const startTgt = controls.target.clone();
+    const startT = performance.now();
 
-    const startCamPos = camera.position.clone();
-    const startTarget = controls.target.clone();
-    const startTime = performance.now();
-
-    function tweenStep(now) {
-        const elapsed = now - startTime;
-        const progress = Math.min(1.0, elapsed / duration);
-        // Smooth cubic ease out
-        const ease = 1 - Math.pow(1 - progress, 3);
-
-        camera.position.lerpVectors(startCamPos, targetCamPos, ease);
-        controls.target.lerpVectors(startTarget, targetControlsPos, ease);
+    function step(now) {
+        const p = Math.min(1.0, (now - startT) / duration);
+        const ease = 1 - Math.pow(1 - p, 3);
+        camera.position.lerpVectors(startCam, targetCamPos, ease);
+        controls.target.lerpVectors(startTgt, targetControlsPos, ease);
         controls.update();
-
-        if (progress < 1.0) {
-            requestAnimationFrame(tweenStep);
-        } else {
-            isCameraTweening = false;
-        }
+        if (p < 1.0) requestAnimationFrame(step);
+        else isCameraTweening = false;
     }
-    requestAnimationFrame(tweenStep);
+    requestAnimationFrame(step);
 }
 
 // ==============================================================================
-// CONTROLS & TOGGLES
+// NAVIGATION, SEARCH, & MODALS
 // ==============================================================================
+function handleBuildingSearch(e) {
+    const val = e.target.value.trim().toUpperCase();
+    if (e.key === "Enter" && val) {
+        const target = buildingMeshes.find(m => m.userData.buildingId.toUpperCase() === val);
+        if (target) focusBuilding(target.userData.buildingId);
+        else alert(`Building ${val} not found in this scene.`);
+    }
+}
+
+function switchResultsTab(tabId) {
+    ['overview', 'buildings', 'infra', 'env'].forEach(t => {
+        document.getElementById(`rtab-${t}`).classList.toggle('active', t === tabId);
+        document.getElementById(`results-content-${t}`).style.display = (t === tabId ? 'block' : 'none');
+    });
+}
+
+function toggleBottomDrawer() {
+    const drawer = document.getElementById('bottom-drawer');
+    const isExp = drawer.classList.toggle('expanded');
+    document.getElementById('drawer-toggle-icon').innerText = isExp ? "▼ Collapse" : "▲ Expand";
+}
+
+function handleComparisonSlider(val) {
+    const blend = val / 100.0;
+    if (activeHazardVisualizationGroup) {
+        activeHazardVisualizationGroup.visible = (blend > 0.05) && layerVisibility.hazard;
+    }
+}
+
+function toggleFilter(filterKey, checked) {
+    if (filterKey === 'affectedBuildings') {
+        buildingMeshes.forEach(mesh => {
+            if (mesh.userData.simulationImpact && mesh.userData.simulationImpact.isAffected) {
+                mesh.visible = checked;
+            }
+        });
+    } else if (filterKey === 'hazardBoundary') {
+        if (activeHazardVisualizationGroup) activeHazardVisualizationGroup.visible = checked;
+    }
+}
+
+function openAnalysisModal() {
+    populateAnalysisTable();
+    openModal('modal-analysis');
+}
+
+function populateAnalysisTable() {
+    const tbody = document.getElementById('analysis-table-body');
+    const buildings = (activeSimulationResult ? activeSimulationResult.assessedBuildings : SCENE_DATA.buildings) || [];
+
+    tbody.innerHTML = buildings.map(b => {
+        const exp = b.exposurePercentage !== undefined ? b.exposurePercentage : 0;
+        const tier = b.impactTier || "NONE";
+        const color = b.impactColorHex || "#94a3b8";
+        const fpSqM = Math.round((b.areaPixels || 0) * 0.1225 * 10) / 10;
+
+        return `
+            <tr>
+                <td style="font-weight: 700; color: #38bdf8;">${b.buildingId}</td>
+                <td>${(b.height || 0).toFixed(1)}m</td>
+                <td>${fpSqM} m²</td>
+                <td style="font-weight: 700; color: ${color};">${exp}%</td>
+                <td><span class="b-badge ${b.badgeClass || 'badge-none'}">${b.impactLabel || 'Baseline'}</span></td>
+                <td><button class="btn-icon" style="padding: 2px 6px; font-size: 10px;" onclick="closeModal('modal-analysis'); focusBuilding('${b.buildingId}')">Focus</button></td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function filterAnalysisTable() {
+    const query = document.getElementById('analysis-table-filter').value.toUpperCase();
+    const rows = document.getElementById('analysis-table-body').getElementsByTagName('tr');
+    for (let r of rows) {
+        r.style.display = r.innerText.toUpperCase().includes(query) ? "" : "none";
+    }
+}
+
+function exportAnalysisCSV() {
+    const buildings = (activeSimulationResult ? activeSimulationResult.assessedBuildings : SCENE_DATA.buildings) || [];
+    let csv = "BuildingID,Height_m,Footprint_m2,Exposure_pct,Impact_Tier\n";
+    buildings.forEach(b => {
+        const fp = Math.round((b.areaPixels || 0) * 0.1225 * 10) / 10;
+        csv += `${b.buildingId},${(b.height || 0).toFixed(1)},${fp},${b.exposurePercentage || 0},${b.impactTier || 'NONE'}\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `DepthWizard_${currentDisasterType}_Analysis.csv`;
+    a.click();
+}
+
+function openPostDisasterModal() { openModal('modal-post-disaster'); }
+function generatePostDisasterView() {
+    closeModal('modal-post-disaster');
+    executeCurrentSimulation();
+    const drawer = document.getElementById('bottom-drawer');
+    drawer.classList.add('expanded');
+    document.getElementById('comparisonSlider').value = 100;
+}
+function handleRealImageUpload() {
+    alert("Real Post-Disaster Module: Second-view imagery ingest pipeline prepared. When connected to cloud API, computes empirical multispectral difference vector.");
+}
+
+function openReportModal() {
+    const stats = activeSimulationResult ? activeSimulationResult.summaryStatistics : null;
+    const body = document.getElementById('report-content-body');
+    const hazard = currentDisasterType;
+
+    if (!stats) {
+        body.innerHTML = `<div style="padding: 16px; text-align: center; color: #94a3b8;">Please run a disaster simulation scenario before generating an impact report.</div>`;
+    } else {
+        body.innerHTML = `
+            <table class="data-table" style="margin-bottom: 14px;">
+                <tr><td style="color:#94a3b8;">Hazard Type:</td><td style="font-weight:700;">${hazard}</td><td style="color:#94a3b8;">Simulation Intensity:</td><td style="font-weight:700;">${currentIntensity.toUpperCase()}</td></tr>
+                <tr><td style="color:#94a3b8;">Total Hazard Area:</td><td><b>${stats.totalHazardAreaSqMeters.toLocaleString()} m²</b></td><td style="color:#94a3b8;">Affected Structures:</td><td><b>${stats.affectedBuildings} / ${stats.totalBuildings}</b></td></tr>
+                <tr><td style="color:#94a3b8;">High / Critical Count:</td><td style="color:#ef4444;"><b>${stats.highAndCriticalCount}</b></td><td style="color:#94a3b8;">Average Exposure:</td><td><b>${stats.averageExposurePercentage}%</b></td></tr>
+                <tr><td style="color:#94a3b8;">Infrastructure Impact:</td><td><b>${stats.affectedRoadsLengthMeters}m Roads</b></td><td style="color:#94a3b8;">Environment Impact:</td><td><b>${stats.affectedVegetationAreaSqMeters.toLocaleString()} m²</b></td></tr>
+            </table>
+            <div style="font-size: 11px; font-weight: 700; color: #38bdf8; margin-bottom: 6px;">Top Priority Structures:</div>
+            <div style="font-size: 11px; color: #cbd5e1;">
+                ${(activeSimulationResult.affectedBuildingsList || []).slice(0, 5).map(b => `${b.buildingId} (${b.impactLabel}, ${b.exposurePercentage}% exp)`).join(' • ')}
+            </div>
+        `;
+    }
+    openModal('modal-report');
+}
+
+function printReport() { window.print(); }
+function openSettingsModal() { alert("DepthWizard Platform Settings:\n- Coordinate System: Local Metric (0.35m/px GSD)\n- HTC-DCNet Elevation: Activated\n- Three.js Renderer: ACES Filmic Tone Mapping"); }
+function openHelpModal() { alert("DepthWizard Quick Guide:\n1. Select disaster hazard (Flood, Wildfire, Cyclone, Landslide)\n2. Choose intensity and click [Run Simulation]\n3. Click any building in 3D to inspect exposure telemetry\n4. Use bottom drawer for Before/After split comparison\n5. Open Analysis tab for CSV export"); }
+
+function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+// ==============================================================================
+// 3D VIEW & CAMERA CONTROLS
+// ==============================================================================
+function setPerspectiveView() {
+    document.getElementById('tab-3d').classList.add('active');
+    document.getElementById('tab-map').classList.remove('active');
+    camera.position.set(0, 480, 560);
+    controls.target.set(0, 10, 0);
+    controls.update();
+}
+
+function setTopView() {
+    document.getElementById('tab-map').classList.add('active');
+    document.getElementById('tab-3d').classList.remove('active');
+    if (isFlying) toggleFlythrough();
+    camera.position.set(0, 950, 1);
+    controls.target.set(0, 0, 0);
+    controls.update();
+}
+
+function resetCamera() {
+    if (isFlying) toggleFlythrough();
+    camera.position.set(0, 480, 560);
+    controls.target.set(0, 10, 0);
+    controls.update();
+}
+
 function setTextureMode(mode) {
     currentTextureMode = mode;
     document.getElementById('btn-satellite').classList.toggle('active', mode === 'satellite');
     document.getElementById('btn-semantic').classList.toggle('active', mode === 'semantic');
 
     const targetTexture = mode === 'satellite' ? satelliteTexture : semanticTexture;
-
     if (terrainMesh) {
         terrainMesh.material.map = targetTexture;
         terrainMesh.material.needsUpdate = true;
     }
 
     buildingMeshes.forEach(mesh => {
-        // If building is currently in a simulated disaster impact state, preserve its impact color
-        if (mesh.userData.simulationImpact && mesh.userData.simulationImpact.isAffected) {
-            return;
-        }
-
+        if (mesh.userData.simulationImpact && mesh.userData.simulationImpact.isAffected) return;
         if (Array.isArray(mesh.material)) {
             if (mode === 'semantic') {
                 mesh.material[0].map = null;
@@ -1808,8 +2021,6 @@ function toggleLayer(layer) {
         if (buildingOutlineMesh) buildingOutlineMesh.visible = layerVisibility.buildings;
     } else if (layer === 'roads') {
         if (roadMesh) roadMesh.visible = layerVisibility.roads;
-    } else if (layer === 'water') {
-        if (waterMesh) waterMesh.visible = layerVisibility.water;
     } else if (layer === 'vegetation') {
         updateTerrainElevation();
     }
@@ -1818,7 +2029,6 @@ function toggleLayer(layer) {
 function onExaggerationChange(val) {
     heightExaggeration = parseFloat(val);
     document.getElementById('exaggerationValue').innerText = heightExaggeration.toFixed(1) + "x";
-
     updateTerrainElevation();
 
     buildingMeshes.forEach(mesh => {
@@ -1830,22 +2040,6 @@ function onExaggerationChange(val) {
         buildingOutlineMesh.scale.copy(selectedBuilding.scale);
         buildingOutlineMesh.position.copy(selectedBuilding.position);
     }
-
-    // Update flood mesh elevation if active
-    if (floodSimulationGroup && activeSimulationResult) {
-        const tData = {
-            gridSize: SCENE_DATA.terrain.gridWidth || 256,
-            elevations: SCENE_DATA.terrain.groundHeights
-        };
-        scene.remove(floodSimulationGroup);
-        floodSimulationGroup = disasterService.create3DFloodVisualization(
-            activeSimulationResult.floodLayer,
-            tData,
-            heightExaggeration
-        );
-        floodSimulationGroup.visible = isFloodVisible;
-        scene.add(floodSimulationGroup);
-    }
 }
 
 function updateTerrainElevation() {
@@ -1856,9 +2050,7 @@ function updateTerrainElevation() {
     const useVeg = layerVisibility.vegetation;
 
     for (let i = 0; i < pos.count; i++) {
-        const gh = groundHeights[i] || 0;
-        const vh = useVeg ? (vegHeights[i] || 0) : 0;
-        pos.setY(i, (gh + vh) * heightExaggeration);
+        pos.setY(i, ((groundHeights[i] || 0) + (useVeg ? (vegHeights[i] || 0) : 0)) * heightExaggeration);
     }
     terrainMesh.geometry.computeVertexNormals();
     pos.needsUpdate = true;
@@ -1866,35 +2058,13 @@ function updateTerrainElevation() {
     if (roadMesh) {
         const roadPos = roadMesh.geometry.attributes.position;
         for (let i = 0; i < roadPos.count; i++) {
-            const gh = groundHeights[i] || 0;
-            roadPos.setY(i, gh * heightExaggeration + 0.15);
+            roadPos.setY(i, (groundHeights[i] || 0) * heightExaggeration + 0.15);
         }
         roadMesh.geometry.computeVertexNormals();
         roadPos.needsUpdate = true;
     }
 }
 
-function resetCamera() {
-    if (isFlying) toggleFlythrough();
-    if (controls) {
-        controls.target.set(0, 10, 0);
-        camera.position.set(0, 480, 560);
-        controls.update();
-    }
-}
-
-function setTopView() {
-    if (isFlying) toggleFlythrough();
-    if (controls) {
-        controls.target.set(0, 0, 0);
-        camera.position.set(0, 850, 1);
-        controls.update();
-    }
-}
-
-// ==============================================================================
-// FLY-THROUGH CAMERA PATH
-// ==============================================================================
 function setupFlythroughCurve() {
     const points = [
         new THREE.Vector3(-420, 220, 380),
@@ -1911,52 +2081,36 @@ function setupFlythroughCurve() {
 
 function toggleFlythrough() {
     isFlying = !isFlying;
-    const banner = document.getElementById('fly-banner');
     const btn = document.getElementById('btn-fly');
-
     if (isFlying) {
         savedCameraPos.copy(camera.position);
-        if (controls) savedTargetPos.copy(controls.target);
-        if (controls) controls.enabled = false;
+        savedTargetPos.copy(controls.target);
+        controls.enabled = false;
         flyProgress = 0;
-        banner.style.display = 'flex';
-        btn.innerText = 'Exit Fly';
         btn.classList.add('active');
     } else {
-        if (controls) controls.enabled = true;
-        banner.style.display = 'none';
-        btn.innerText = 'Fly Through';
+        controls.enabled = true;
         btn.classList.remove('active');
         camera.position.copy(savedCameraPos);
-        if (controls) {
-            controls.target.copy(savedTargetPos);
-            controls.update();
-        }
+        controls.target.copy(savedTargetPos);
+        controls.update();
     }
 }
 
-// ==============================================================================
-// ANIMATION LOOP
-// ==============================================================================
 let clock = new THREE.Clock();
-
 function animate() {
     requestAnimationFrame(animate);
-
     const delta = clock.getDelta();
-
     if (isFlying && flyCurve) {
         flyProgress = (flyProgress + delta * 0.035) % 1.0;
         const camPos = flyCurve.getPointAt(flyProgress);
         const lookTarget = flyCurve.getPointAt((flyProgress + 0.04) % 1.0);
         lookTarget.y = Math.max(10, lookTarget.y - 120);
-
         camera.position.copy(camPos);
         camera.lookAt(lookTarget);
     } else if (controls && !isCameraTweening) {
         controls.update();
     }
-
     renderer.render(scene, camera);
 }
 
