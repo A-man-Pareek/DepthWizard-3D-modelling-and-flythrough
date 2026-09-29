@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DepthWizard | Flythrough Viewer</title>
+  </head>
+  <body>
+    <main id="app" aria-label="DepthWizard flythrough viewer"></main>
+    <div id="hud">
+      <div class="top-row">
+        <div class="brand">DepthWizard</div>
+        <button id="download-glb-button" class="download-button" type="button" title="Download 3D GLB Model">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>DOWNLOAD GLB</span>
+        </button>
+      </div>
+      <div class="mode-badge" id="mode-badge">Mode: FLYTHROUGH</div>
+      <button id="enter-button" type="button">Click to enter Flythrough</button>
+      <div class="measurement-hint" id="measurement-hint">Move cursor over a building to select it. Use the arrow keys to cycle nearby buildings.</div>
+      <div class="speed-control" id="speed-control">
+        <label for="speed-slider"><span>FLYTHROUGH SPEED</span><output id="speed-value" for="speed-slider">5 units/s</output></label>
+        <input id="speed-slider" type="range" min="0.1" max="20" value="5" step="0.5" />
+      </div>
+      <div class="speed-control" id="flood-control" style="margin-top: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <label for="hazard-select" style="color: #38bdf8; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em;">⚠️ HAZARD TYPE</label>
+          <select id="hazard-select" style="background: #132322; color: #f7d27d; border: 1px solid #38bdf8; border-radius: 4px; padding: 3px 8px; font: inherit; font-size: 0.75rem; cursor: pointer;">
+            <option value="FLOOD">🌊 Flood Water Level</option>
+            <option value="WILDFIRE">🔥 Wildfire & Char</option>
+            <option value="CYCLONE">🌀 Cyclone Storm</option>
+            <option value="LANDSLIDE">⛰️ Landslide Slope</option>
+          </select>
+        </div>
+        <label for="flood-slider"><span style="color: #38bdf8;">SIMULATION INTENSITY</span><output id="flood-value" for="flood-slider">0%</output></label>
+        <input id="flood-slider" type="range" min="0" max="100" value="0" step="1" />
+      </div>
+      <div class="dimension-toggle" id="dimension-toggle">
+        <div class="panel-title">DIMENSION VIEW</div>
+        <button id="absolute-button" type="button" disabled>ABSOLUTE</button>
+        <button id="relative-button" type="button" class="active">RELATIVE</button>
+      </div>
+      <div class="controls" id="flythrough-controls">
+        <span>WASD / Arrow Keys <b>Move</b></span>
+        <span>Space <b>Up</b></span>
+        <span>Shift <b>Down</b></span>
+        <span>Mouse <b>Look</b></span>
+        <span>ESC <b>Exit</b></span>
+      </div>
+      <div class="controls" id="measurement-controls">
+        <span>Move cursor <b>Select building</b></span>
+        <span>Arrow Keys <b>Cycle nearby</b></span>
+        <span>Click <b>Select</b></span>
+        <span>ESC <b>Exit measurement</b></span>
+      </div>
+      <div id="status" role="status" aria-live="polite">Loading environment...</div>
+      <div id="selection" aria-live="polite"></div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

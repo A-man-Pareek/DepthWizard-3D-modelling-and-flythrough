@@ -1,7 +1,41 @@
+# Dependencies & Environments
+node_modules/
+**/node_modules/
 venv/
 **/venv/
-__pycache__/
-*.pyc
 .env
+.env.local
+
+# PyTorch / ML Models, Training Checkpoints & Datasets
+*.pth
+*.pth.tar
+*.ckpt
+*.onnx
+*.ply
+**/checkpoints/
+**/data/srtm/
+**/data/training/
+**/dataset/
+**/datasets/
+
+# Build Outputs & Scratch
+dist/
+**/dist/
+build/
+**/outputs/*.tiff
+**/outputs/*.geotiff
+**/outputs/*.png
+**/outputs/*.jpg
+
+# Python Cache
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
 .ipynb_checkpoints/
+
+# IDE & OS
 .vscode/
+.idea/
+.DS_Store
+*.log

@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>DepthWizard 3D Terrain</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+
+            background: #080c11;
+            color: white;
+
+            font-family: Arial, sans-serif;
+        }
+
+        #viewer {
+            position: absolute;
+
+            inset: 0;
+
+            width: 100%;
+            height: 100%;
+        }
+
+        /* =====================================================
+           CONTROL PANEL
+           ===================================================== */
+
+        #panel {
+
+            position: absolute;
+
+            top: 20px;
+            left: 20px;
+
+            width: 250px;
+
+            padding: 18px;
+
+            background: rgba(12, 18, 25, 0.94);
+
+            border: 1px solid #2b3744;
+
+            border-radius: 12px;
+
+            z-index: 10;
+
+            box-shadow:
+                0 10px 30px rgba(0, 0, 0, 0.35);
+        }
+
+        #panel h2 {
+
+            margin: 0 0 18px 0;
+
+            font-size: 19px;
+
+            letter-spacing: 0.5px;
+        }
+
+        .subtitle {
+
+            color: #82909e;
+
+            font-size: 11px;
+
+            margin-bottom: 18px;
+        }
+
+        /* =====================================================
+           STATS
+           ===================================================== */
+
+        .stat {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            padding: 8px 0;
+
+            border-bottom: 1px solid #202a34;
+
+            font-size: 12px;
+        }
+
+        .stat:last-of-type {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: #84919d;
+        }
+
+        .stat-value {
+            color: white;
+            font-weight: 600;
+        }
+
+        /* =====================================================
+           BUTTONS
+           ===================================================== */
+
+        button {
+
+            width: 100%;
+
+            margin-top: 9px;
+
+            padding: 11px 12px;
+
+            border: none;
+
+            border-radius: 7px;
+
+            background: #1b2936;
+
+            color: white;
+
+            font-size: 12px;
+
+            font-weight: 600;
+
+            cursor: pointer;
+
+            transition: 0.2s;
+        }
+
+        button:hover {
+
+            background: #273b4d;
+
+        }
+
+        .primary {
+
+            background: #2479c9;
+
+        }
+
+        .primary:hover {
+
+            background: #2e8dde;
+
+        }
+
+        /* =====================================================
+           FLYTHROUGH
+           ===================================================== */
+
+        .section-title {
+
+            margin-top: 18px;
+
+            margin-bottom: 5px;
+
+            font-size: 11px;
+
+            text-transform: uppercase;
+
+            letter-spacing: 1px;
+
+            color: #65727f;
+        }
+
+        #flyStatus {
+
+            margin-top: 12px;
+
+            padding: 9px;
+
+            background: #101820;
+
+            border-radius: 6px;
+
+            font-size: 11px;
+
+            color: #7ecbff;
+
+            text-align: center;
+        }
+
+        /* =====================================================
+           LOADING
+           ===================================================== */
+
+        #loading {
+
+            position: absolute;
+
+            inset: 0;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            background: #080c11;
+
+            z-index: 20;
+
+            font-size: 15px;
+
+            color: #aab5c0;
+        }
+
+        /* =====================================================
+           HELP
+           ===================================================== */
+
+        #help {
+
+            position: absolute;
+
+            bottom: 20px;
+
+            right: 20px;
+
+            padding: 10px 14px;
+
+            background: rgba(12, 18, 25, 0.9);
+
+            border: 1px solid #26313c;
+
+            border-radius: 7px;
+
+            color: #8b98a5;
+
+            font-size: 11px;
+
+            z-index: 10;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<!-- =========================================================
+     LOADING SCREEN
+     ========================================================= -->
+
+<div id="loading">
+
+    Loading 3D terrain...
+
+</div>
+
+
+<!-- =========================================================
+     3D VIEWER
+     ========================================================= -->
+
+<div id="viewer"></div>
+
+
+<!-- =========================================================
+     CONTROL PANEL
+     ========================================================= -->
+
+<div id="panel">
+
+    <h2>DEPTHWIZARD 3D</h2>
+
+    <div class="subtitle">
+
+        HTC-DC Net • Height-based reconstruction
+
+    </div>
+
+
+    <!-- STATS -->
+
+    <div class="stat">
+
+        <span class="stat-label">
+            Maximum Height
+        </span>
+
+        <span
+            class="stat-value"
+            id="maxHeight">
+            --
+        </span>
+
+    </div>
+
+
+    <div class="stat">
+
+        <span class="stat-label">
+            Mean Height
+        </span>
+
+        <span
+            class="stat-value"
+            id="meanHeight">
+            --
+        </span>
+
+    </div>
+
+
+    <div class="stat">
+
+        <span class="stat-label">
+            Mesh Resolution
+        </span>
+
+        <span
+            class="stat-value"
+            id="resolution">
+            --
+        </span>
+
+    </div>
+
+
+    <!-- CAMERA -->
+
+    <div class="section-title">
+        Camera
+    </div>
+
+
+    <button
+        class="primary"
+        onclick="resetCamera()">
+
+        Reset View
+
+    </button>
+
+
+    <!-- FLYTHROUGH -->
+
+    <div class="section-title">
+        Flythrough
+
+    </div>
+
+
+    <button
+        class="primary"
+        onclick="startFlythrough()">
+
+        ▶ Start Flythrough
+
+    </button>
+
+
+    <button
+        onclick="pauseFlythrough()">
+
+        ⏸ Pause
+
+    </button>
+
+
+    <button
+        onclick="stopFlythrough()">
+
+        ■ Stop
+
+    </button>
+
+
+    <div id="flyStatus">
+
+        Camera Ready
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     HELP
+     ========================================================= -->
+
+<div id="help">
+
+    Drag: Orbit &nbsp; • &nbsp;
+    Scroll: Zoom &nbsp; • &nbsp;
+    Right Drag: Pan
+
+</div>
+
+
+<!-- =========================================================
+     THREE.JS
+     ========================================================= -->
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+
+
+<script>
+
+
+// ============================================================
+// GLOBAL VARIABLES
+// ============================================================
+
+let scene;
+
+let camera;
+
+let renderer;
+
+let controls;
+
+let terrain;
+
+let terrainWidth;
+
+let terrainHeight;
+
+let heights;
+
+let flying = false;
+
+let flyProgress = 0;
+
+
+// ============================================================
+// LOAD TERRAIN DATA
+// ============================================================
+
+async function loadTerrain() {
+
+    try {
+
+        const response =
+            await fetch("terrain_data.json");
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Could not load terrain_data.json"
+            );
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        terrainWidth =
+            data.width;
+
+        terrainHeight =
+            data.height;
+
+        heights =
+            data.heights;
+
+
+        // ----------------------------------------------------
+        // DISPLAY STATISTICS
+        // ----------------------------------------------------
+
+        document.getElementById(
+            "maxHeight"
+        ).innerText =
+            data.max_height.toFixed(2) + " m";
+
+
+        document.getElementById(
+            "meanHeight"
+        ).innerText =
+            data.mean_height.toFixed(2) + " m";
+
+
+        document.getElementById(
+            "resolution"
+        ).innerText =
+            data.width + " × " + data.height;
+
+
+        // ----------------------------------------------------
+        // CREATE SCENE
+        // ----------------------------------------------------
+
+        createScene(data);
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        document.getElementById(
+            "loading"
+        ).innerText =
+            "Failed to load 3D terrain data.";
+
+    }
+
+}
+
+
+// ============================================================
+// CREATE THREE.JS SCENE
+// ============================================================
+
+function createScene(data) {
+
+
+    // ========================================================
+    // SCENE
+    // ========================================================
+
+    scene =
+        new THREE.Scene();
+
+
+    scene.background =
+        new THREE.Color(0x080c11);
+
+
+    // ========================================================
+    // CAMERA
+    // ========================================================
+
+    camera =
+        new THREE.PerspectiveCamera(
+
+            55,
+
+            window.innerWidth /
+            window.innerHeight,
+
+            0.1,
+
+            10000
+
+        );
+
+
+    camera.position.set(
+
+        0,
+
+        90,
+
+        150
+
+    );
+
+
+    // ========================================================
+    // RENDERER
+    // ========================================================
+
+    renderer =
+        new THREE.WebGLRenderer({
+
+            antialias: true
+
+        });
+
+
+    renderer.setPixelRatio(
+        window.devicePixelRatio
+    );
+
+
+    renderer.setSize(
+
+        window.innerWidth,
+
+        window.innerHeight
+
+    );
+
+
+    renderer.outputColorSpace =
+        THREE.SRGBColorSpace;
+
+
+    document
+        .getElementById("viewer")
+        .appendChild(
+            renderer.domElement
+        );
+
+
+    // ========================================================
+    // LIGHTING
+    // ========================================================
+
+    const ambientLight =
+        new THREE.AmbientLight(
+
+            0xffffff,
+
+            1.5
+
+        );
+
+
+    scene.add(
+        ambientLight
+    );
+
+
+    const directionalLight =
+        new THREE.DirectionalLight(
+
+            0xffffff,
+
+            2.0
+
+        );
+
+
+    directionalLight.position.set(
+
+        100,
+
+        300,
+
+        100
+
+    );
+
+
+    scene.add(
+        directionalLight
+    );
+
+
+    // ========================================================
+    // TERRAIN GEOMETRY
+    // ========================================================
+
+    const geometry =
+        new THREE.PlaneGeometry(
+
+            200,
+
+            200,
+
+            terrainWidth - 1,
+
+            terrainHeight - 1
+
+        );
+
+
+    const positions =
+        geometry.attributes.position;
+
+
+    // ========================================================
+    // HEIGHT SCALE
+    // ========================================================
+
+    /*
+        HTC-DC values are in metres.
+
+        Therefore:
+
+            Z = height in metres
+
+        We initially use a 1:1 vertical scale.
+    */
+
+    const verticalScale = 1.0;
+
+
+    for (
+
+        let i = 0;
+
+        i < positions.count;
+
+        i++
+
+    ) {
+
+        const h =
+            heights[i] || 0;
+
+
+        positions.setZ(
+
+            i,
+
+            h * verticalScale
+
+        );
+
+    }
+
+
+    geometry.computeVertexNormals();
+
+
+    // ========================================================
+    // LOAD RGB TEXTURE
+    // ========================================================
+
+    const textureLoader =
+        new THREE.TextureLoader();
+
+
+    textureLoader.load(
+
+        "terrain_texture.png",
+
+        function(texture) {
+
+
+            texture.colorSpace =
+                THREE.SRGBColorSpace;
+
+
+            texture.minFilter =
+                THREE.LinearFilter;
+
+
+            texture.magFilter =
+                THREE.LinearFilter;
+
+
+            // ------------------------------------------------
+            // MATERIAL
+            // ------------------------------------------------
+
+            const material =
+                new THREE.MeshStandardMaterial({
+
+                    map: texture,
+
+                    side: THREE.DoubleSide,
+
+                    roughness: 0.9,
+
+                    metalness: 0.0
+
+                });
+
+
+            // ------------------------------------------------
+            // MESH
+            // ------------------------------------------------
+
+            terrain =
+                new THREE.Mesh(
+
+                    geometry,
+
+                    material
+
+                );
+
+
+            /*
+                PlaneGeometry starts horizontal
+                after rotation.
+
+                Y becomes the vertical axis.
+            */
+
+            terrain.rotation.x =
+                -Math.PI / 2;
+
+
+            scene.add(
+                terrain
+            );
+
+
+            // ------------------------------------------------
+            // CONTROLS
+            // ------------------------------------------------
+
+            controls =
+                new THREE.OrbitControls(
+
+                    camera,
+
+                    renderer.domElement
+
+                );
+
+
+            controls.enableDamping =
+                true;
+
+
+            controls.dampingFactor =
+                0.08;
+
+
+            controls.target.set(
+
+                0,
+
+                data.mean_height,
+
+                0
+
+            );
+
+
+            controls.update();
+
+
+            // ------------------------------------------------
+            // HIDE LOADING
+            // ------------------------------------------------
+
+            document.getElementById(
+                "loading"
+            ).style.display =
+                "none";
+
+
+            // ------------------------------------------------
+            // START
+            // ------------------------------------------------
+
+            animate();
+
+        },
+
+        undefined,
+
+        function(error) {
+
+            console.error(
+                "Texture loading failed:",
+                error
+            );
+
+            document.getElementById(
+                "loading"
+            ).innerText =
+                "Terrain loaded, but texture failed.";
+
+        }
+
+    );
+
+}
+
+
+// ============================================================
+// MAIN ANIMATION LOOP
+// ============================================================
+
+function animate() {
+
+    requestAnimationFrame(
+        animate
+    );
+
+
+    // --------------------------------------------------------
+    // FLYTHROUGH
+    // --------------------------------------------------------
+
+    if (flying) {
+
+        updateFlythrough();
+
+    }
+
+
+    // --------------------------------------------------------
+    // ORBIT CONTROLS
+    // --------------------------------------------------------
+
+    if (controls) {
+
+        controls.update();
+
+    }
+
+
+    // --------------------------------------------------------
+    // RENDER
+    // --------------------------------------------------------
+
+    renderer.render(
+
+        scene,
+
+        camera
+
+    );
+
+}
+
+
+// ============================================================
+// START FLYTHROUGH
+// ============================================================
+
+function startFlythrough() {
+
+    if (!terrain) {
+
+        return;
+
+    }
+
+
+    flying = true;
+
+
+    flyProgress = 0;
+
+
+    controls.enabled =
+        false;
+
+
+    document.getElementById(
+        "flyStatus"
+    ).innerText =
+        "Flythrough Running";
+
+}
+
+
+// ============================================================
+// UPDATE FLYTHROUGH
+// ============================================================
+
+function updateFlythrough() {
+
+
+    /*
+        Progress controls movement along
+        the predefined camera path.
+    */
+
+    flyProgress += 0.0007;
+
+
+    if (flyProgress >= 1) {
+
+        flyProgress = 0;
+
+    }
+
+
+    const t =
+        flyProgress;
+
+
+    // --------------------------------------------------------
+    // CAMERA PATH
+    // --------------------------------------------------------
+
+    const x =
+        -90 + (180 * t);
+
+
+    const z =
+        -90 +
+        Math.sin(t * Math.PI) * 80;
+
+
+    const y =
+        35 +
+        Math.sin(t * Math.PI) * 18;
+
+
+    camera.position.set(
+
+        x,
+
+        y,
+
+        z
+
+    );
+
+
+    // --------------------------------------------------------
+    // LOOK AHEAD
+    // --------------------------------------------------------
+
+    const lookX =
+        -90 + (180 * Math.min(t + 0.03, 1));
+
+
+    const lookZ =
+        -90 +
+        Math.sin(
+            Math.min(t + 0.03, 1) * Math.PI
+        ) * 80;
+
+
+    const lookY =
+        10 +
+        Math.sin(
+            Math.min(t + 0.03, 1) * Math.PI
+        ) * 10;
+
+
+    camera.lookAt(
+
+        lookX,
+
+        lookY,
+
+        lookZ
+
+    );
+
+}
+
+
+// ============================================================
+// PAUSE
+// ============================================================
+
+function pauseFlythrough() {
+
+    flying = false;
+
+
+    controls.enabled =
+        true;
+
+
+    document.getElementById(
+        "flyStatus"
+    ).innerText =
+        "Flythrough Paused";
+
+}
+
+
+// ============================================================
+// STOP
+// ============================================================
+
+function stopFlythrough() {
+
+    flying = false;
+
+
+    controls.enabled =
+        true;
+
+
+    flyProgress = 0;
+
+
+    resetCamera();
+
+
+    document.getElementById(
+        "flyStatus"
+    ).innerText =
+        "Flythrough Stopped";
+
+}
+
+
+// ============================================================
+// RESET CAMERA
+// ============================================================
+
+function resetCamera() {
+
+    if (!camera || !controls) {
+
+        return;
+
+    }
+
+
+    flying = false;
+
+
+    controls.enabled =
+        true;
+
+
+    camera.position.set(
+
+        0,
+
+        90,
+
+        150
+
+    );
+
+
+    controls.target.set(
+
+        0,
+
+        5,
+
+        0
+
+    );
+
+
+    controls.update();
+
+
+    document.getElementById(
+        "flyStatus"
+    ).innerText =
+        "Camera Ready";
+
+}
+
+
+// ============================================================
+// WINDOW RESIZE
+// ============================================================
+
+window.addEventListener(
+
+    "resize",
+
+    function() {
+
+
+        if (!camera || !renderer) {
+
+            return;
+
+        }
+
+
+        camera.aspect =
+
+            window.innerWidth /
+            window.innerHeight;
+
+
+        camera.updateProjectionMatrix();
+
+
+        renderer.setSize(
+
+            window.innerWidth,
+
+            window.innerHeight
+
+        );
+
+    }
+
+);
+
+
+// ============================================================
+// START APPLICATION
+// ============================================================
+
+loadTerrain();
+
+
+</script>
+
+
+</body>
+
+</html>

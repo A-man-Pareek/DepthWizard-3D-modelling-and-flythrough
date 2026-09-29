@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DepthWizard - Semantic 3D Reconstruction & Digital Twin</title>
+    <style>
+        :root {
+            --bg-glass: rgba(13, 20, 32, 0.88);
+            --border-glass: rgba(255, 255, 255, 0.12);
+            --accent-blue: #00d2ff;
+            --accent-cyan: #00f2fe;
+            --accent-orange: #ff7644;
+            --accent-green: #2ecc71;
+            --text-primary: #f0f4f8;
+            --text-muted: #94a3b8;
+            --active-bg: rgba(0, 210, 255, 0.22);
+            --active-border: #00d2ff;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #06090e;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--text-primary);
+        }
+        #viewport {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* TOP NAVIGATION BAR */
+        #topbar {
+            position: absolute;
+            top: 14px;
+            left: 18px;
+            right: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            z-index: 100;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand-logo {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 16px;
+            color: #06090e;
+            box-shadow: 0 0 12px rgba(0, 210, 255, 0.4);
+        }
+        .brand-title {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            background: linear-gradient(90deg, #ffffff, #a5b4fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .brand-subtitle {
+            font-size: 11px;
+            color: var(--text-muted);
+            letter-spacing: 0.3px;
+        }
+        .controls-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border-glass);
+            color: var(--text-primary);
+            padding: 7px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.14);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+        .btn.active {
+            background: var(--active-bg);
+            border-color: var(--active-border);
+            color: var(--accent-blue);
+            box-shadow: 0 0 14px rgba(0, 210, 255, 0.25);
+        }
+        .btn-flight {
+            background: linear-gradient(135deg, rgba(0, 210, 255, 0.2), rgba(58, 123, 213, 0.3));
+            border-color: rgba(0, 210, 255, 0.4);
+        }
+        .btn-flight:hover {
+            background: linear-gradient(135deg, rgba(0, 210, 255, 0.35), rgba(58, 123, 213, 0.45));
+        }
+        .divider {
+            width: 1px;
+            height: 24px;
+            background: var(--border-glass);
+            margin: 0 4px;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 5px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-glass);
+        }
+        .slider-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100px;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            cursor: pointer;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent-blue);
+        }
+        .slider-val {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--accent-blue);
+            min-width: 32px;
+            text-align: right;
+        }
+
+        /* RIGHT SIDEBAR INFORMATION PANEL */
+        #infopanel {
+            position: absolute;
+            top: 76px;
+            right: 18px;
+            width: 320px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glass);
+            border-radius: 14px;
+            padding: 18px;
+            z-index: 100;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+        }
+        .panel-section-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .stat-box {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 8px;
+            padding: 8px 10px;
+        }
+        .stat-box-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+        }
+        .stat-box-val {
+            font-size: 15px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 210, 255, 0.25);
+            border-radius: 10px;
+            padding: 14px;
+            transition: all 0.3s ease;
+        }
+        .card.active {
+            background: rgba(0, 210, 255, 0.06);
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 20px rgba(0, 210, 255, 0.15);
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .building-badge {
+            background: linear-gradient(135deg, var(--accent-orange), #d35400);
+            color: #fff;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: 6px;
+            letter-spacing: 0.5px;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            font-size: 12px;
+        }
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+        .stat-label {
+            color: var(--text-muted);
+        }
+        .stat-value {
+            font-weight: 600;
+            color: #f8fafc;
+        }
+        .stat-value.highlight {
+            color: var(--accent-blue);
+            font-weight: 700;
+        }
+        .btn-clear {
+            width: 100%;
+            margin-top: 10px;
+            background: rgba(231, 76, 60, 0.15);
+            border: 1px solid rgba(231, 76, 60, 0.35);
+            color: #ff7675;
+            padding: 6px 0;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-clear:hover {
+            background: rgba(231, 76, 60, 0.3);
+            border-color: #ff7675;
+        }
+
+        /* BOTTOM HELP HINT */
+        #bottom-hint {
+            position: absolute;
+            bottom: 16px;
+            left: 18px;
+            padding: 8px 16px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-glass);
+            border-radius: 8px;
+            font-size: 11px;
+            color: var(--text-muted);
+            z-index: 100;
+            pointer-events: none;
+        }
+        #bottom-hint span {
+            color: #f1f5f9;
+            font-weight: 600;
+            margin-right: 12px;
+        }
+
+        /* LOADING OVERLAY */
+        #loading {
+            position: absolute;
+            inset: 0;
+            background: #06090e;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(0, 210, 255, 0.15);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 16px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+    <!-- Three.js + OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="loading">
+        <div class="spinner"></div>
+        <div style="font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">DepthWizard 3D Digital Twin</div>
+        <div style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Building HTC-DC Net 3D Geometry...</div>
+    </div>
+
+    <div id="viewport"></div>
+
+    <!-- TOP CONTROL BAR -->
+    <div id="topbar">
+        <div class="brand">
+            <div class="brand-logo">DW</div>
+            <div>
+                <div class="brand-title">DepthWizard</div>
+                <div class="brand-subtitle">Satellite 3D Digital Twin</div>
+            </div>
+        </div>
+
+        <div class="controls-group">
+            <!-- Texture Mode -->
+            <button id="btn-sat" class="btn active" onclick="setTextureMode('satellite')">📷 Satellite Texture</button>
+            <button id="btn-sem" class="btn" onclick="setTextureMode('semantic')">🎨 Semantic Colors</button>
+
+            <div class="divider"></div>
+
+            <!-- Layer Toggles -->
+            <button id="toggle-bldgs" class="btn active" onclick="toggleLayer('buildings')">🏢 Buildings</button>
+            <button id="toggle-veg" class="btn active" onclick="toggleLayer('vegetation')">🌳 Vegetation</button>
+            <button id="toggle-roads" class="btn active" onclick="toggleLayer('roads')">🛣️ Roads</button>
+            <button id="toggle-water" class="btn active" onclick="toggleLayer('water')">💧 Water</button>
+
+            <div class="divider"></div>
+
+            <!-- Height Exaggeration Slider -->
+            <div class="slider-container">
+                <span class="slider-label">Height:</span>
+                <input id="slider-exaggeration" class="slider" type="range" min="0.5" max="5.0" step="0.1" value="1.0" oninput="onHeightExaggerationChange(this.value)">
+                <span id="val-exaggeration" class="slider-val">1.0x</span>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Camera Controls -->
+            <button id="btn-flight" class="btn btn-flight" onclick="toggleFlythrough()">🚀 Fly Through</button>
+            <button class="btn" onclick="setTopView()">📐 Top View</button>
+            <button class="btn" onclick="resetCamera()">🔄 Reset</button>
+        </div>
+    </div>
+
+    <!-- RIGHT INFORMATION PANEL -->
+    <div id="infopanel">
+        <div class="panel-section-title">
+            <span>Scene Information</span>
+            <span style="color: var(--accent-blue);">LIVE</span>
+        </div>
+        <div class="stat-grid">
+            <div class="stat-box">
+                <div class="stat-box-label">Resolution</div>
+                <div id="stat-res" class="stat-box-val">1024 × 1024</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-box-label">Buildings</div>
+                <div id="stat-bldgs-count" class="stat-box-val">--</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-box-label">Max Height</div>
+                <div id="stat-max-hgt" class="stat-box-val">-- m</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-box-label">Mean Height</div>
+                <div id="stat-mean-hgt" class="stat-box-val">-- m</div>
+            </div>
+        </div>
+
+        <div class="panel-section-title">
+            <span>Selected Building</span>
+            <span id="selection-status" style="font-size: 10px; color: var(--text-muted);">None</span>
+        </div>
+
+        <div id="building-card" class="card">
+            <div id="no-selection" style="text-align: center; padding: 20px 10px; color: var(--text-muted); font-size: 12px;">
+                🖱️ Click any building in the 3D scene to inspect individual HTC-DC height metrics & footprint.
+            </div>
+            <div id="selection-details" style="display: none;">
+                <div class="card-header">
+                    <span id="bldg-id-badge" class="building-badge">B-001</span>
+                    <span style="font-size: 11px; color: var(--text-muted);">SegFormer Class 1</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Estimated Height:</span>
+                    <span id="bldg-est-height" class="stat-value highlight">-- m</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Mean Height:</span>
+                    <span id="bldg-mean-height" class="stat-value">-- m</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Maximum Height:</span>
+                    <span id="bldg-max-height" class="stat-value">-- m</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Minimum Height:</span>
+                    <span id="bldg-min-height" class="stat-value">-- m</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Median Height:</span>
+                    <span id="bldg-med-height" class="stat-value">-- m</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Footprint Area:</span>
+                    <span id="bldg-area" class="stat-value">-- px²</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Centroid:</span>
+                    <span id="bldg-centroid" class="stat-value">--</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Ground Elevation:</span>
+                    <span id="bldg-ground" class="stat-value">-- m</span>
+                </div>
+                <button class="btn-clear" onclick="clearSelection()">✕ Clear Selection</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM HINT -->
+    <div id="bottom-hint">
+        <span>Left Drag</span> Rotate / Orbit &nbsp;•&nbsp;
+        <span>Right Drag</span> Pan &nbsp;•&nbsp;
+        <span>Scroll</span> Zoom &nbsp;•&nbsp;
+        <span>Left Click</span> Select Building
+    </div>
+
+    <script>
+        // =====================================================================
+        // APPLICATION STATE & GLOBALS
+        // =====================================================================
+        let scene, camera, renderer, controls;
+        let sceneData = null;
+        let satTexture = null, semTexture = null;
+        let currentTextureMode = 'satellite'; // 'satellite' | 'semantic'
+        let heightExaggeration = 1.0;
+
+        // Scene Groups
+        let terrainGroup = new THREE.Group();
+        let buildingGroup = new THREE.Group();
+        let outlineGroup = new THREE.Group();
+
+        let terrainMesh = null;
+        let baseTerrainElevations = null; // Float32Array for dynamic height scaling
+        let buildingMeshes = [];
+        let selectedBuildingMesh = null;
+        let hoveredBuildingMesh = null;
+
+        // Fly-through
+        let isFlying = false;
+        let flyProgress = 0;
+        let flythroughCurve = null;
+        let clock = new THREE.Clock();
+
+        // Layer Visibilities
+        const layerVisibility = {
+            buildings: true,
+            vegetation: true,
+            roads: true,
+            water: true
+        };
+
+        // Three.js Raycaster
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let isPointerDragging = false;
+        let pointerDownPos = new THREE.Vector2();
+
+        // =====================================================================
+        // INITIALIZATION & DATA LOADING
+        // =====================================================================
+        async function init() {
+            const viewport = document.getElementById('viewport');
+
+            // 1. Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x06090e);
+            scene.fog = new THREE.FogExp2(0x06090e, 0.0022);
+
+            // 2. Camera
+            camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 2000);
+            camera.position.set(0, 115, 155);
+
+            // 3. Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.15;
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            viewport.appendChild(renderer.domElement);
+
+            // 4. OrbitControls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.06;
+            controls.maxPolarAngle = Math.PI / 2 - 0.04;
+            controls.minDistance = 15;
+            controls.maxDistance = 500;
+            controls.target.set(0, 5, 0);
+
+            // 5. Lighting
+            setupLighting();
+
+            // Add Groups to Scene
+            scene.add(terrainGroup);
+            scene.add(buildingGroup);
+            scene.add(outlineGroup);
+
+            // 6. Texture Loader
+            const texLoader = new THREE.TextureLoader();
+            const loadTex = (url) => new Promise((resolve) => {
+                texLoader.load(url, (t) => {
+                    t.colorSpace = THREE.SRGBColorSpace;
+                    t.minFilter = THREE.LinearMipmapLinearFilter;
+                    t.magFilter = THREE.LinearFilter;
+                    t.generateMipmaps = true;
+                    resolve(t);
+                }, undefined, () => resolve(null));
+            });
+
+            // Load Data & Textures in parallel
+            try {
+                const [dataRes, satTex, semTex] = await Promise.all([
+                    fetch('semantic_scene.json').then(r => r.json()),
+                    loadTex('satellite_texture.png'),
+                    loadTex('semantic_texture.png')
+                ]);
+                sceneData = dataRes;
+                satTexture = satTex;
+                semTexture = semTex;
+
+                // Update UI Stats
+                document.getElementById('stat-res').innerText = `${sceneData.metadata.width} × ${sceneData.metadata.height}`;
+                document.getElementById('stat-bldgs-count').innerText = sceneData.buildings.length;
+                document.getElementById('stat-max-hgt').innerText = `${sceneData.metadata.maxHeight.toFixed(2)} m`;
+                document.getElementById('stat-mean-hgt').innerText = `${sceneData.metadata.meanHeight.toFixed(2)} m`;
+
+                // Build 3D Geometry
+                buildTerrainMesh();
+                buildBuildingMeshes();
+                setupFlythroughCurve();
+
+                // Hide loader
+                const loader = document.getElementById('loading');
+                loader.style.opacity = '0';
+                setTimeout(() => loader.style.display = 'none', 500);
+
+            } catch (err) {
+                console.error('Failed to load DepthWizard scene:', err);
+                document.getElementById('loading').innerHTML =
+                    '<div style="color: #ff7675; font-size: 16px; font-weight: 700;">Failed to load DepthWizard scene</div>' +
+                    '<div style="color: #94a3b8; font-size: 12px; margin-top: 8px;">Please ensure python HTTP server is running.</div>';
+            }
+
+            // Event Listeners
+            setupEventListeners();
+
+            // Render loop
+            animate();
+        }
+
+        function setupLighting() {
+            const ambient = new THREE.AmbientLight(0xffffff, 0.72);
+            scene.add(ambient);
+
+            // Key Sunlight (warm directional)
+            const sun = new THREE.DirectionalLight(0xfffaed, 1.45);
+            sun.position.set(130, 220, 90);
+            sun.castShadow = true;
+            sun.shadow.mapSize.width = 2048;
+            sun.shadow.mapSize.height = 2048;
+            sun.shadow.camera.near = 10;
+            sun.shadow.camera.far = 600;
+            sun.shadow.camera.left = -120;
+            sun.shadow.camera.right = 120;
+            sun.shadow.camera.top = 120;
+            sun.shadow.camera.bottom = -120;
+            sun.shadow.bias = -0.0004;
+            scene.add(sun);
+
+            // Sky Fill Light (cool hemisphere)
+            const hemi = new THREE.HemisphereLight(0xdbeafe, 0x1e293b, 0.45);
+            scene.add(hemi);
+        }
+
+        // =====================================================================
+        // 3D TERRAIN SURFACE (Ground + Vegetation + Roads + Water)
+        // =====================================================================
+        function buildTerrainMesh() {
+            const gridRes = sceneData.terrain.resolution;
+            const extent = sceneData.metadata.sceneExtent;
+            const heights = sceneData.terrain.heightGrid; // 1D array of length gridRes * gridRes
+
+            const geom = new THREE.PlaneGeometry(extent, extent, gridRes - 1, gridRes - 1);
+            geom.rotateX(-Math.PI / 2); // Lay flat on X-Z plane
+
+            const pos = geom.attributes.position;
+            baseTerrainElevations = new Float32Array(pos.count);
+
+            for (let i = 0; i < pos.count; i++) {
+                const h = heights[i] || 0.0;
+                baseTerrainElevations[i] = h;
+                pos.setY(i, h * heightExaggeration);
+            }
+
+            // Calculate pixel-exact UVs aligned with 1024x1024 texture
+            const uvs = geom.attributes.uv;
+            for (let i = 0; i < pos.count; i++) {
+                const x = pos.getX(i);
+                const z = pos.getZ(i);
+                const u = (x / extent) + 0.5;
+                const v = 1.0 - ((z / extent) + 0.5);
+                uvs.setXY(i, u, v);
+            }
+
+            geom.computeVertexNormals();
+
+            const terrainMat = new THREE.MeshStandardMaterial({
+                map: satTexture,
+                roughness: 0.88,
+                metalness: 0.04
+            });
+
+            terrainMesh = new THREE.Mesh(geom, terrainMat);
+            terrainMesh.receiveShadow = true;
+            terrainGroup.add(terrainMesh);
+        }
+
+        // =====================================================================
+        // INDIVIDUAL BUILDING EXTRACTION & EXTRUSION
+        // =====================================================================
+        function buildBuildingMeshes() {
+            const extent = sceneData.metadata.sceneExtent;
+            const scale = extent / sceneData.metadata.width; // 200.0 / 1024.0
+
+            sceneData.buildings.forEach((b) => {
+                if (!b.polygon || b.polygon.length < 3) return;
+
+                // 1. Build THREE.Shape from 2D footprint contour
+                const shape = new THREE.Shape();
+                b.polygon.forEach((pt, idx) => {
+                    // Pixel coords (0..1024) -> Centered Scene Coords (-100..100)
+                    const sx = (pt[0] - 512.0) * scale;
+                    const sz = (pt[1] - 512.0) * scale;
+                    if (idx === 0) shape.moveTo(sx, sz);
+                    else shape.lineTo(sx, sz);
+                });
+                shape.closePath();
+
+                // 2. Interior Courtyards / Holes
+                if (b.holes && b.holes.length > 0) {
+                    b.holes.forEach((holePts) => {
+                        if (holePts.length < 3) return;
+                        const holePath = new THREE.Path();
+                        holePts.forEach((pt, idx) => {
+                            const hx = (pt[0] - 512.0) * scale;
+                            const hz = (pt[1] - 512.0) * scale;
+                            if (idx === 0) holePath.moveTo(hx, hz);
+                            else holePath.lineTo(hx, hz);
+                        });
+                        holePath.closePath();
+                        shape.holes.push(holePath);
+                    });
+                }
+
+                // 3. Extrude geometry vertically by building height
+                const extrudeSettings = {
+                    depth: b.height,
+                    bevelEnabled: false,
+                    steps: 1
+                };
+                const geom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+
+                // Rotate so extrusion direction is along world +Y
+                geom.rotateX(Math.PI / 2);
+
+                // 4. Precise UV mapping on Roof Cap so satellite image drapes seamlessly
+                const pos = geom.attributes.position;
+                const uvs = geom.attributes.uv;
+                for (let i = 0; i < pos.count; i++) {
+                    const vx = pos.getX(i);
+                    const vz = pos.getZ(i);
+                    // Match top-down satellite projection UV
+                    const u = (vx / extent) + 0.5;
+                    const v = 1.0 - ((vz / extent) + 0.5);
+                    uvs.setXY(i, u, v);
+                }
+                geom.computeVertexNormals();
+
+                // 5. Materials: Roof uses satellite texture, side walls use clean architectural concrete
+                const roofMat = new THREE.MeshStandardMaterial({
+                    map: satTexture,
+                    roughness: 0.65,
+                    metalness: 0.08
+                });
+                const wallMat = new THREE.MeshStandardMaterial({
+                    color: 0x8a847d,
+                    roughness: 0.80,
+                    metalness: 0.12
+                });
+
+                const mesh = new THREE.Mesh(geom, [roofMat, wallMat]);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+
+                // Position base at ground elevation
+                mesh.position.y = (b.groundElevation + b.height) * heightExaggeration;
+                // Note: ExtrudeGeometry with rotateX(Math.PI/2) extrudes downward from 0 to -depth
+                // Thus setting position.y = ground + height places the bottom flush on ground!
+
+                // Attach rich userData for Raycasting & Selection
+                mesh.userData = {
+                    type: "building",
+                    buildingId: b.id,
+                    height: b.height,
+                    meanHeight: b.meanHeight,
+                    maxHeight: b.maxHeight,
+                    minHeight: b.minHeight,
+                    medianHeight: b.medianHeight,
+                    area: b.areaPixels,
+                    centroid: b.centroid,
+                    groundElevation: b.groundElevation,
+                    classId: 1,
+                    className: "Building"
+                };
+
+                // 6. Crisp selection outline (EdgesGeometry)
+                const edgesGeom = new THREE.EdgesGeometry(geom, 28);
+                const outlineMat = new THREE.LineBasicMaterial({
+                    color: 0x00f2fe,
+                    linewidth: 2,
+                    transparent: true,
+                    opacity: 0.95
+                });
+                const outline = new THREE.LineSegments(edgesGeom, outlineMat);
+                outline.visible = false;
+                mesh.add(outline);
+                mesh.outline = outline;
+
+                buildingMeshes.push(mesh);
+                buildingGroup.add(mesh);
+            });
+        }
+
+        // =====================================================================
+        // FLY-THROUGH CAMERA PATH
+        // =====================================================================
+        function setupFlythroughCurve() {
+            flythroughCurve = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(-90, 52, 90),
+                new THREE.Vector3(-45, 38, 25),
+                new THREE.Vector3(15, 34, -40),
+                new THREE.Vector3(85, 46, -85),
+                new THREE.Vector3(95, 50, 15),
+                new THREE.Vector3(35, 52, 85),
+                new THREE.Vector3(-45, 54, 95),
+                new THREE.Vector3(-90, 52, 90)
+            ], true);
+        }
+
+        function toggleFlythrough() {
+            isFlying = !isFlying;
+            const btn = document.getElementById('btn-flight');
+            if (isFlying) {
+                btn.classList.add('active');
+                btn.innerText = '⏹️ Exit Fly Through';
+                controls.enabled = false;
+            } else {
+                btn.classList.remove('active');
+                btn.innerText = '🚀 Fly Through';
+                controls.enabled = true;
+                controls.target.set(0, 5, 0);
+            }
+        }
+
+        // =====================================================================
+        // RAYCASTING & BUILDING SELECTION
+        // =====================================================================
+        function setupEventListeners() {
+            window.addEventListener('resize', onWindowResize);
+
+            const vp = document.getElementById('viewport');
+
+            vp.addEventListener('pointerdown', (e) => {
+                isPointerDragging = false;
+                pointerDownPos.set(e.clientX, e.clientY);
+            });
+
+            vp.addEventListener('pointermove', (e) => {
+                if (pointerDownPos.distanceTo(new THREE.Vector2(e.clientX, e.clientY)) > 5) {
+                    isPointerDragging = true;
+                }
+
+                if (isFlying) return;
+
+                // Hover Raycast
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+
+                if (!layerVisibility.buildings) return;
+                const intersects = raycaster.intersectObjects(buildingMeshes, false);
+
+                if (intersects.length > 0) {
+                    document.body.style.cursor = 'pointer';
+                    setHoverBuilding(intersects[0].object);
+                } else {
+                    document.body.style.cursor = 'default';
+                    setHoverBuilding(null);
+                }
+            });
+
+            vp.addEventListener('pointerup', (e) => {
+                // Ignore drags
+                if (isPointerDragging) return;
+
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+
+                if (!layerVisibility.buildings) return;
+                const intersects = raycaster.intersectObjects(buildingMeshes, false);
+
+                if (intersects.length > 0) {
+                    selectBuilding(intersects[0].object);
+                } else {
+                    clearSelection();
+                }
+            });
+        }
+
+        function selectBuilding(mesh) {
+            if (selectedBuildingMesh === mesh) return;
+            clearSelection();
+
+            selectedBuildingMesh = mesh;
+
+            // Highlight Roof & Walls with glowing emissive color
+            mesh.material[0].emissive.setHex(0x004488);
+            mesh.material[1].emissive.setHex(0x0099ff);
+            mesh.outline.visible = true;
+
+            // Populate Information Panel
+            updateBuildingCard(mesh.userData);
+        }
+
+        function setHoverBuilding(mesh) {
+            if (hoveredBuildingMesh === mesh) return;
+
+            if (hoveredBuildingMesh && hoveredBuildingMesh !== selectedBuildingMesh) {
+                hoveredBuildingMesh.material[0].emissive.setHex(0x000000);
+                hoveredBuildingMesh.material[1].emissive.setHex(0x000000);
+                hoveredBuildingMesh.outline.visible = false;
+            }
+
+            hoveredBuildingMesh = mesh;
+
+            if (mesh && mesh !== selectedBuildingMesh) {
+                mesh.material[1].emissive.setHex(0x003355);
+                mesh.outline.visible = true;
+            }
+        }
+
+        function clearSelection() {
+            if (selectedBuildingMesh) {
+                selectedBuildingMesh.material[0].emissive.setHex(0x000000);
+                selectedBuildingMesh.material[1].emissive.setHex(0x000000);
+                selectedBuildingMesh.outline.visible = false;
+                selectedBuildingMesh = null;
+            }
+            resetBuildingCard();
+        }
+
+        function updateBuildingCard(u) {
+            document.getElementById('no-selection').style.display = 'none';
+            document.getElementById('selection-details').style.display = 'block';
+            document.getElementById('building-card').classList.add('active');
+            document.getElementById('selection-status').innerText = 'SELECTED';
+            document.getElementById('selection-status').style.color = '#00d2ff';
+
+            document.getElementById('bldg-id-badge').innerText = u.buildingId;
+            document.getElementById('bldg-est-height').innerText = `${u.height.toFixed(2)} m`;
+            document.getElementById('bldg-mean-height').innerText = `${u.meanHeight.toFixed(2)} m`;
+            document.getElementById('bldg-max-height').innerText = `${u.maxHeight.toFixed(2)} m`;
+            document.getElementById('bldg-min-height').innerText = `${u.minHeight.toFixed(2)} m`;
+            document.getElementById('bldg-med-height').innerText = `${u.medianHeight.toFixed(2)} m`;
+            document.getElementById('bldg-area').innerText = `${u.area.toLocaleString()} px²`;
+            document.getElementById('bldg-centroid').innerText = `X: ${u.centroid.x}, Y: ${u.centroid.y}`;
+            document.getElementById('bldg-ground').innerText = `${u.groundElevation.toFixed(2)} m`;
+        }
+
+        function resetBuildingCard() {
+            document.getElementById('no-selection').style.display = 'block';
+            document.getElementById('selection-details').style.display = 'none';
+            document.getElementById('building-card').classList.remove('active');
+            document.getElementById('selection-status').innerText = 'None';
+            document.getElementById('selection-status').style.color = '#94a3b8';
+        }
+
+        // =====================================================================
+        // CONTROLS & UI ACTIONS
+        // =====================================================================
+        function setTextureMode(mode) {
+            currentTextureMode = mode;
+            document.getElementById('btn-sat').classList.toggle('active', mode === 'satellite');
+            document.getElementById('btn-sem').classList.toggle('active', mode === 'semantic');
+
+            const activeTex = (mode === 'satellite') ? satTexture : semTexture;
+
+            // Update terrain
+            if (terrainMesh) {
+                terrainMesh.material.map = activeTex;
+                terrainMesh.material.needsUpdate = true;
+            }
+
+            // Update building roofs
+            buildingMeshes.forEach(mesh => {
+                if (mode === 'satellite') {
+                    mesh.material[0].map = satTexture;
+                    mesh.material[0].color.setHex(0xffffff);
+                    mesh.material[1].color.setHex(0x8a847d);
+                } else {
+                    mesh.material[0].map = semTexture;
+                    mesh.material[0].color.setHex(0xe74c3c);
+                    mesh.material[1].color.setHex(0xc0392b);
+                }
+                mesh.material[0].needsUpdate = true;
+                mesh.material[1].needsUpdate = true;
+            });
+        }
+
+        function toggleLayer(layer) {
+            layerVisibility[layer] = !layerVisibility[layer];
+            const btn = document.getElementById(`toggle-${layer}`);
+            if (btn) btn.classList.toggle('active', layerVisibility[layer]);
+
+            if (layer === 'buildings') {
+                buildingGroup.visible = layerVisibility.buildings;
+                if (!layerVisibility.buildings) clearSelection();
+            }
+            // Real-time layer shader / texture toggling can be extended here
+        }
+
+        function onHeightExaggerationChange(val) {
+            heightExaggeration = parseFloat(val);
+            document.getElementById('val-exaggeration').innerText = `${heightExaggeration.toFixed(1)}x`;
+
+            // 1. Scale terrain surface
+            if (terrainMesh && baseTerrainElevations) {
+                const pos = terrainMesh.geometry.attributes.position;
+                for (let i = 0; i < pos.count; i++) {
+                    pos.setY(i, baseTerrainElevations[i] * heightExaggeration);
+                }
+                pos.needsUpdate = true;
+                terrainMesh.geometry.computeVertexNormals();
+            }
+
+            // 2. Scale building vertical height & elevation
+            buildingMeshes.forEach(mesh => {
+                mesh.scale.set(1, 1, heightExaggeration);
+                const u = mesh.userData;
+                mesh.position.y = (u.groundElevation + u.height) * heightExaggeration;
+            });
+        }
+
+        function setTopView() {
+            if (isFlying) toggleFlythrough();
+            controls.target.set(0, 0, 0);
+            camera.position.set(0, 260, 0.1);
+            controls.update();
+        }
+
+        function resetCamera() {
+            if (isFlying) toggleFlythrough();
+            controls.target.set(0, 5, 0);
+            camera.position.set(0, 115, 155);
+            controls.update();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // =====================================================================
+        // ANIMATION LOOP
+        // =====================================================================
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+
+            if (isFlying && flythroughCurve) {
+                flyProgress = (flyProgress + delta * 0.028) % 1.0;
+                const camPos = flythroughCurve.getPointAt(flyProgress);
+                const lookTarget = flythroughCurve.getPointAt((flyProgress + 0.05) % 1.0);
+                lookTarget.y -= 12.0; // Angle slightly downward for sweeping flyover view
+
+                camera.position.copy(camPos);
+                camera.lookAt(lookTarget);
+            } else {
+                controls.update();
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

@@ -1,3 +1,5 @@
+
+
 /**
  * DepthWizard Landslide Simulator (Client-side)
  * Terrain elevation and slope gradient analysis with downslope debris runout fan.
@@ -11,7 +13,9 @@ class LandslideSimulator {
     }
 
     generateLandslideScenario(intensity = "medium", seed = 42, terrainElevations = null) {
-        const preset = SimulationConfig.LANDSLIDE_INTENSITIES[intensity] || SimulationConfig.LANDSLIDE_INTENSITIES.medium;
+        const preset = Simulat
+
+        ionConfig.LANDSLIDE_INTENSITIES[intensity] || SimulationConfig.LANDSLIDE_INTENSITIES.medium;
         const runoutDist = preset.runoutDistancePixels;
         const critSlope = preset.criticalSlopeDegrees;
 

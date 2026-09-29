@@ -1,0 +1,70 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# PyTorch / Deep Learning Checkpoints (Only epoch 5 checkpoint_best_rmse tracked via Git LFS)
+HTC-DC-Net/checkpoints/
+checkpoints/*.pth.tar
+checkpoints/*.pth
+!checkpoints/checkpoint_best_rmse.pth.tar
+*.ckpt
+*.h5
+
+# Local DEM Cache and Datasets
+data/data_dir/
+dem_cache/
+*.tif.aux.xml
+
+# Experiment tracking
+**/wandb/
+wandb/
+
+# Output rasters and large test artifacts
+outputs/*.tif
+outputs/*.png
+outputs/*.json
+!outputs/.gitkeep
+
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Temporary files
+*.log
+scratch/
