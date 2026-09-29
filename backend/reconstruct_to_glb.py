@@ -216,6 +216,72 @@ def build_natural_elevation(
     return np.maximum(h_final, 0.0)
 
 
+def extract_building_scene_metadata(height: np.ndarray, seg: np.ndarray = None, terrain_size: float = 200.0) -> dict:
+    """Extract individual building contours, bounding boxes, heights, and centroids for 3D raycasting."""
+    import cv2
+    H, W = height.shape
+    if seg is None or seg.shape != (H, W):
+        seg_mask = (height >= 1.5).astype(np.uint8)
+    else:
+        seg_mask = ((seg == 1) | (seg == 25) | (height >= 1.5)).astype(np.uint8)
+
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+    cleaned = cv2.morphologyEx(seg_mask, cv2.MORPH_OPEN, kernel)
+    cleaned = cv2.morphologyEx(cleaned, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5)))
+
+    contours, _ = cv2.findContours(cleaned, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    buildings = []
+    bldg_counter = 1
+
+    scale_x = terrain_size / W
+    scale_z = terrain_size / H
+
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        if area < 25:
+            continue
+
+        bx, by, bw, bh = cv2.boundingRect(cnt)
+        mask = np.zeros((H, W), dtype=np.uint8)
+        cv2.drawContours(mask, [cnt], -1, 255, -1)
+        b_heights = height[mask == 255]
+        if len(b_heights) == 0:
+            continue
+
+        h_max = float(np.max(b_heights))
+        M = cv2.moments(cnt)
+        cx = float(M["m10"] / M["m00"]) if M["m00"] != 0 else float(bx + bw / 2.0)
+        cy = float(M["m01"] / M["m00"]) if M["m00"] != 0 else float(by + bh / 2.0)
+
+        world_x = (cx / W - 0.5) * terrain_size
+        world_z = (cy / H - 0.5) * terrain_size
+        world_w = bw * scale_x
+        world_d = bh * scale_z
+
+        bldg_id = f"Building #{bldg_counter}"
+        bldg_counter += 1
+
+        buildings.append({
+            "id": bldg_id,
+            "name": bldg_id,
+            "type": "building",
+            "classType": "building",
+            "centroid": {"x": round(world_x, 2), "z": round(world_z, 2)},
+            "height": round(h_max, 2),
+            "width": round(world_w, 2),
+            "depth": round(world_d, 2),
+            "bbox_2d": [int(bx), int(by), int(bw), int(bh)],
+        })
+
+    return {
+        "buildingCount": len(buildings),
+        "buildings": buildings,
+        "units": "meters",
+        "metersPerUnit": 1.0,
+        "mode": "absolute-geo"
+    }
+
+
 def create_terrain_mesh(
     image_path: str,
     height_path: str,
@@ -228,6 +294,7 @@ def create_terrain_mesh(
     downsample: int = 1,
 ) -> dict:
     """Convert RGB image, height map, and segmentation into a photorealistic 3D textured GLB & PLY."""
+    import json
     rgb = load_image_array(image_path)
     raw_height = load_raster_channel(height_path).astype(np.float32)
 
@@ -253,25 +320,40 @@ def create_terrain_mesh(
         zoom_x = w_img / segmentation.shape[1]
         segmentation = zoom(segmentation, (zoom_y, zoom_x), order=0)
 
-    # 1. High-Resolution Satellite Texture (Preserve exact original colors & photographic fidelity)
+    # 1. Extract building contours and scene metadata for 3D raycasting
+    scene_meta = extract_building_scene_metadata(raw_height, seg=segmentation, terrain_size=terrain_size)
+
+    # Save semantic_scene.json to output and viewer public directories
+    sih_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    out_json = os.path.join(sih_root, "output", "semantic_scene.json")
+    pub_json = os.path.join(sih_root, "3d_viewer", "public", "metadata.json")
+    for jpath in [out_json, pub_json]:
+        try:
+            os.makedirs(os.path.dirname(jpath), exist_ok=True)
+            with open(jpath, "w", encoding="utf-8") as f:
+                json.dump(scene_meta, f, indent=2)
+        except Exception as e:
+            print(f"[2d_to_3d] Could not write metadata json {jpath}: {e}")
+
+    # 2. High-Resolution Satellite Texture (Preserve exact original colors & photographic fidelity)
     pil_rgb = Image.fromarray(rgb)
     enhanced_pil = ImageEnhance.Contrast(pil_rgb).enhance(1.05)
     enhanced_pil = ImageEnhance.Sharpness(enhanced_pil).enhance(1.15)
 
-    # 2. Build Natural Elevation Field (300x300 grid)
+    # 3. Build Natural Elevation Field (300x300 grid)
     res = int(grid_resolution) if grid_resolution else 300
 
     h_smooth = build_natural_elevation(raw_height, rgb=rgb, segmentation=segmentation, grid_res=res)
     H, W = h_smooth.shape
 
-    # 3. Baked Sunlight Hillshade for Physical 3D Depth
+    # 4. Baked Sunlight Hillshade for Physical 3D Depth
     shading_light = compute_baked_lighting(h_smooth, target_size=enhanced_pil.size)
     lit_texture_arr = np.clip(
         np.array(enhanced_pil).astype(np.float32) * (0.75 + 0.35 * shading_light), 0, 255
     ).astype(np.uint8)
     final_texture_pil = Image.fromarray(lit_texture_arr)
 
-    # 4. Construct 3D Grid Geometry (200x200m standard bounds, centered at origin)
+    # 5. Construct 3D Grid Geometry (200x200m standard bounds, centered at origin)
     gx, gy = np.meshgrid(np.arange(W), np.arange(H))
     X = (((gx / (W - 1)) - 0.5) * terrain_size).astype(np.float32)
     Z = (((gy / (H - 1)) - 0.5) * terrain_size).astype(np.float32)
@@ -279,12 +361,12 @@ def create_terrain_mesh(
 
     vertices = np.stack([X.ravel(), Y.ravel(), Z.ravel()], axis=1)
 
-    # 5. UV Coordinates: Correct 1-to-1 glTF UV mapping (V=1.0 at top row gy=0)
+    # 6. UV Coordinates: Correct 1-to-1 glTF UV mapping (V=1.0 at top row gy=0)
     U = (gx / (W - 1)).astype(np.float32).ravel()
     V = (1.0 - (gy / (H - 1))).astype(np.float32).ravel()
     uv_coords = np.stack([U, V], axis=1)
 
-    # 6. Triangle Faces (counter-clockwise winding, normals pointing UP)
+    # 7. Triangle Faces (counter-clockwise winding, normals pointing UP)
     i = (np.arange(H - 1)[:, None] * W + np.arange(W - 1)[None, :]).ravel()
     a = i
     b = i + 1
@@ -295,7 +377,7 @@ def create_terrain_mesh(
     t2 = np.stack([b, c, d], axis=1)
     faces = np.vstack([t1, t2])
 
-    # 7. glTF 2.0 PBR Material with full baseColorTexture
+    # 8. glTF 2.0 PBR Material with full baseColorTexture
     pbr_material = trimesh.visual.material.PBRMaterial(
         baseColorTexture=final_texture_pil,
         baseColorFactor=[1.0, 1.0, 1.0, 1.0],
@@ -312,7 +394,7 @@ def create_terrain_mesh(
         process=False,
     )
 
-    # 8. Export Binary glTF (.glb)
+    # 9. Export Binary glTF (.glb)
     if output_glb:
         os.makedirs(os.path.dirname(os.path.abspath(output_glb)), exist_ok=True)
         glb_data = mesh.export(file_type="glb")
@@ -320,7 +402,7 @@ def create_terrain_mesh(
             f.write(glb_data)
         print(f"[2d_to_3d] Photorealistic GLB exported: {output_glb} ({len(glb_data)} bytes)")
 
-    # 9. Export PLY Mesh with Vertex Colors
+    # 10. Export PLY Mesh with Vertex Colors
     if output_ply:
         os.makedirs(os.path.dirname(os.path.abspath(output_ply)), exist_ok=True)
         ply_mesh = mesh.copy()
@@ -344,6 +426,7 @@ def create_terrain_mesh(
         "height_min_m": float(h_smooth.min()),
         "height_max_m": float(h_smooth.max()),
         "height_mean_m": float(h_smooth.mean()),
+        "building_count": scene_meta["buildingCount"],
         "glb_path": output_glb,
         "ply_path": output_ply,
     }
